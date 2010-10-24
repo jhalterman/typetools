@@ -62,11 +62,14 @@ public final class Types {
 
     /**
      * Resolves an array of raw classes representing type arguments for {@code target} resolved
-     * upwards from {@code intiailType}. If no arguments can be resolved then null is returned, else
-     * an array
+     * upwards from {@code intiailType}.
      * 
-     * Arguments for {@code target} that cannot be resolved to a Class are returned as null.
+     * <p>
+     * Arguments for {@code target} that cannot be resolved to a Class are returned as null. If no
+     * arguments can be resolved then null is returned.
      * 
+     * @param target to resolve arguments for
+     * @param initialType to resolve upwards from
      * @return array of raw classes representing type arguments for {@code initial}, else null.
      */
     public static <T, I extends T> Class<?>[] resolveArguments(Class<T> target, Class<I> initialType) {
@@ -82,12 +85,16 @@ public final class Types {
     }
 
     /**
-     * Returns an array of raw classes representing the type arguments for the given {@code target}
-     * resolved upwards from the given {@code intiailType}.
+     * Resolves an array of type arguments for {@code target} resolved upwards from
+     * {@code intiailType}.
      * 
      * <p>
-     * Individual arguments for {@code target} that cannot be resolved to a raw class are returned
-     * as null. If no arguments can be resolved then {@code null} is returned.
+     * Arguments for {@code target} that cannot be resolved are returned as null. If no arguments
+     * can be resolved then null is returned.
+     * 
+     * @param target to resolve arguments for
+     * @param initialType to resolve upwards from
+     * @return array of type arguments for {@code initial}, else null.
      */
     public static <T, I extends T> Type[] resolveArgumentsAsTypes(Class<T> target,
             Class<I> initialType) {
