@@ -1,10 +1,12 @@
 # TypeTools 0.0.1
 
+Copyright 2010 Jonathan Halterman - Released under the [EPL license](http://www.eclipse.org/legal/epl-v10.html).
+
 A simple set of tools for working with Java types.
 
-### Motivation
+## Introduction
 
-One of the sore points with Java's generics implementation is that it doesn't provide a way to fully resolve the type arguments for a given class. Type arguments and parameters for a given class do not reflect its entire hierarchy. Among other things, TypeTools looks to solve this.
+One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to fully resolve the type arguments for a given class. Type arguments and parameters for a given class do not reflect its entire hierarchy. Among other things, TypeTools looks to solve this.
 
 ### Features
 
@@ -12,7 +14,7 @@ One of the sore points with Java's generics implementation is that it doesn't pr
 * Class resolution - Given a type, the corresponding raw class can be resolved
 * Bound resolution - Given a type, the raw class for individual upper bounds can be resolved
 
-### Examples
+## Examples
 
 Type argument raw class resolution:
 
@@ -33,9 +35,9 @@ Type bound raw class resolution:
     assertEquals(Types.resolveBound(typeParameter, 1), Comparable.class);
     assertEquals(Types.resolveBound(typeParameter, 2), Serializable.class);
 
-### Use Cases
+## Use Cases
 
-Layer supertypes often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type parameter instances from a layer supertype's subclass, regardless of the complexity of the type hierarchy. 
+[Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type parameter instances from a layer supertype's subclass, regardless of the complexity of the type hierarchy. 
 
 Below is an example layer supertype implementation of a generic DAO:
 
@@ -63,3 +65,7 @@ Below is an example layer supertype implementation of a generic DAO:
     }
     
 While this example is oversimplified and lacks validation, it demonstrates a common use case for TypeTools.
+
+## License
+
+TypeTools is released under the [EPL license](http://www.eclipse.org/legal/epl-v10.html).
