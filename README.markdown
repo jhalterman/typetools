@@ -53,8 +53,8 @@ Below is an example layer supertype implementation of a generic DAO:
         }
     }
 
-    class RouterDAO extends DeviceDAO<Router> {}
     class DeviceDAO<T extends Device> extends GenericDAO<T, Long> {}
+    class RouterDAO extends DeviceDAO<Router> {}
 
     void assertTypeArguments() {
         RouterDAO routerDAO = new RouterDAO();
