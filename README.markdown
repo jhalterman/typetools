@@ -1,6 +1,6 @@
 # TypeTools 0.0.1
 
-A simple set of tools for working Java types.
+A simple set of tools for working with Java types.
 
 ### Motivation
 
