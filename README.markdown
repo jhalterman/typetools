@@ -6,21 +6,21 @@ A simple set of tools for working with Java types.
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to fully resolve the type arguments for a given class. Type arguments and parameters for a given class do not reflect its entire hierarchy. Among other things, TypeTools looks to solve this.
+One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to fully resolve the type arguments for a given class. Among other things, TypeTools looks to solve this.
 
 ### Features
 
-* Type argument resolution - Given a type to resolve arguments for and a starting point in the type hierarchy, TypeTools will walk the hierarchy, binding type arguments to parameters to provide a fully resolved set of type argument instances for the target type.
+* Type argument resolution - Given a type to resolve arguments for and a starting point in the type hierarchy, TypeTools will walk the hierarchy, binding type arguments to parameters to provide a fully resolved set of type arguments for the target type.
 * Class resolution - Given a type, the corresponding raw class can be resolved
-* Bound resolution - Given a type, the raw class for individual upper bounds can be resolved
+* Bound resolution - Given a type, the raw class for upper bounds can be resolved
 
 ## Examples
 
 Type argument raw class resolution:
 
-    class Foo extends Bar<ArrayList<?>> {}
-    class Bar<T extends List<?>> implements Baz<HashSet<?>, T> {}
-    Baz<T1 extends Set<?>, T2 extends List<?>> {}
+    class Foo extends Bar<ArrayList<String>> {}
+    class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
+    Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
     Class<?>[] typeArguments = Types.resolveArguments(Baz.class, Foo.class);
     assert typeArguments[0] == HashSet.class;
