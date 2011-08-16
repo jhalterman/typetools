@@ -4,38 +4,23 @@ A simple set of tools for working with Java types.
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to fully resolve the type arguments for a given class. Among other things, TypeTools looks to solve this.
+One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type arguments for a given class. 
 
-### Features
-
-* Type argument resolution - Given a type to resolve arguments for and a starting point in the type hierarchy, TypeTools resolve type arguments using information provided by the generic superclass and superinterfaces.
-* Class resolution - Given a type, the corresponding raw class can be resolved
-* Bound resolution - Given a type, the raw class for upper bounds can be resolved
+Among other things, TypeTools looks to solve this by fully resolving type arguments using type variable information declared on any class, interface, or method in a type hierarchy.
 
 ## Setup
 
 [Download](https://github.com/jhalterman/typetools/downloads) the latest TypeTools jar and add it to your classpath.
 
-## Examples
-
-Type argument raw class resolution:
+## Example
 
     class Foo extends Bar<ArrayList<String>> {}
     class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
     Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
-    Class<?>[] typeArguments = Types.resolveArguments(Baz.class, Foo.class);
+    Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
     assert typeArguments[0] == HashSet.class;
     assert typeArguments[1] == ArrayList.class;
-    
-Type bound raw class resolution:
-
-    class MultiBounded<T extends List<?> & Comparable<?> & Serializable> {}
-    
-    Type typeParameter = MultiBounded.class.getTypeParameters()[0];
-    assertEquals(Types.resolveBound(typeParameter, 0), List.class);
-    assertEquals(Types.resolveBound(typeParameter, 1), Comparable.class);
-    assertEquals(Types.resolveBound(typeParameter, 2), Serializable.class);
 
 ## Use Cases
 
@@ -51,7 +36,7 @@ Below is an example layer supertype implementation of a generic DAO:
         protected Class<ID> idClass;
 
         private GenericDAO() {
-            Class<?>[] typeArguments = Types.resolveArguments(GenericDAO.class, getClass());
+            Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
             this.persistentClass = (Class<T>) typeArguments[0];
             this.idClass = (Class<ID>) typeArguments[1];
         }
@@ -66,7 +51,7 @@ Below is an example layer supertype implementation of a generic DAO:
         assert routerDAO.idClass == Long.class;
     }
     
-While this example is oversimplified and lacks validation, it demonstrates a common use case for TypeTools.
+While this example is oversimplified, it demonstrates a common use case for TypeTools.
 
 ## License
 
