@@ -4,9 +4,7 @@ A simple set of tools for working with Java types.
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type arguments for a given class. 
-
-Among other things, TypeTools looks to solve this by fully resolving type arguments using type variable information declared on any class, interface, or method in a type hierarchy.
+One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type arguments for a given class. Among other things, TypeTools looks to solve this by fully resolving type arguments using type variable information declared on any class, interface, or method in a type hierarchy.
 
 ## Setup
 
