@@ -14,7 +14,7 @@ One of the sore points with Java involves working with type information. In part
 
     class Foo extends Bar<ArrayList<String>> {}
     class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
-    Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
+    interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
     Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
     assert typeArguments[0] == HashSet.class;
