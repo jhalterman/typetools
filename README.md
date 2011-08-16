@@ -12,6 +12,10 @@ One of the sore points with Java involves working with type information. In part
 * Class resolution - Given a type, the corresponding raw class can be resolved
 * Bound resolution - Given a type, the raw class for upper bounds can be resolved
 
+## Setup
+
+[Download](https://github.com/jhalterman/typetools/downloads) the latest TypeTools jar and add it to your classpath.
+
 ## Examples
 
 Type argument raw class resolution:
