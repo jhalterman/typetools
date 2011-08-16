@@ -1,6 +1,4 @@
-# TypeTools 0.0.1
-
-Copyright 2010 Jonathan Halterman - Released under the [EPL license](http://www.eclipse.org/legal/epl-v10.html).
+# TypeTools
 
 A simple set of tools for working with Java types.
 
@@ -10,7 +8,7 @@ One of the sore points with Java involves working with type information. In part
 
 ### Features
 
-* Type argument resolution - Given a type to resolve arguments for and a starting point in the type hierarchy, TypeTools will walk the hierarchy, binding type arguments to parameters to provide a fully resolved set of type arguments for the target type.
+* Type argument resolution - Given a type to resolve arguments for and a starting point in the type hierarchy, TypeTools resolve type arguments using information provided by the generic superclass and superinterfaces.
 * Class resolution - Given a type, the corresponding raw class can be resolved
 * Bound resolution - Given a type, the raw class for upper bounds can be resolved
 
@@ -68,4 +66,4 @@ While this example is oversimplified and lacks validation, it demonstrates a com
 
 ## License
 
-TypeTools is released under the [EPL license](http://www.eclipse.org/legal/epl-v10.html).
+Copyright 2010-2011 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
