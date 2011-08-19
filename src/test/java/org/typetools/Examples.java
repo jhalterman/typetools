@@ -10,6 +10,7 @@ import org.testng.annotations.Test;
 /**
  * TypeTools examples.
  */
+@Test
 public class Examples {
   static class Device {
   }
@@ -35,7 +36,6 @@ public class Examples {
   static class RouterDAO extends DeviceDAO<Router> {
   }
 
-  @Test
   public void shouldResolveLayerSuperTypeInfo() {
     RouterDAO routerDAO = new RouterDAO();
     assert routerDAO.persistentClass == Router.class;
@@ -45,7 +45,7 @@ public class Examples {
   static class Entity<ID extends Serializable> {
     ID id;
 
-    void setId(List<ID> id) {
+    void setId(ID id) {
     }
   }
 
@@ -58,7 +58,7 @@ public class Examples {
   }
 
   public void shouldResolveTypeFromMethodDeclaration() throws Exception {
-    Method mutator = Entity.class.getDeclaredMethod("setId", List.class);
-    assert TypeResolver.resolveArgument(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
+    Method mutator = Entity.class.getDeclaredMethod("setId", Serializable.class);
+    assert TypeResolver.resolveClass(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
   }
 }

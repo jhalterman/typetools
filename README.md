@@ -19,10 +19,11 @@ A typical use case is to resolve the type arguments across a type hierarchy from
     interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
     Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
+    
     assert typeArguments[0] == HashSet.class;
     assert typeArguments[1] == ArrayList.class;
 
-We can also resolve type arguments using the generic type for a field or method parameter:
+We can also resolve type argument information that is present in field or method declarations:
     
     class Entity<ID extends Serializable> {
       ID id;
@@ -32,10 +33,10 @@ We can also resolve type arguments using the generic type for a field or method 
     class SomeEntity extends Entity<Long> {}
     
     Field field = Entity.class.getDeclaredField("id");
-    assert TypeResolver.resolveClass(field.getGenericType(), SomeEntity.class) == Long.class;
+    Method mutator = Entity.class.getDeclaredMethod("setId", Serializable.class);
     
-    Method mutator = Entity.class.getDeclaredMethod("setId", List.class);
-    assert TypeResolver.resolveArgument(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveClass(field.getGenericType(), SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveClass(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
 
 ## Common Use Cases
 
