@@ -53,7 +53,7 @@ public class TypeResolverTest {
   static class SimpleRepo implements IIRepo<String, List<?>> {
   }
 
-  static class Entity<ID extends Serializable, T, D, E> {
+  static class Entity<ID extends Serializable> {
     ID id;
 
     void setId(List<ID> id) {
@@ -62,7 +62,7 @@ public class TypeResolverTest {
   
   static class SomeList extends ArrayList<Integer>{}
 
-  static class SomeEntity extends Entity<Long, Object, Object, Object> {
+  static class SomeEntity extends Entity<Long> {
   }
 
   public void shouldResolveClass() throws Exception {
