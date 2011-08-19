@@ -12,7 +12,7 @@ One of the sore points with Java involves working with type information. In part
 
 ## Examples
 
-A typical use case is to resolve the type arguments across a type hierarchy from an initial type to a target type:
+A typical use case is to resolve the type arguments across a type hierarchy from an initial type for a target type:
 
     class Foo extends Bar<ArrayList<String>> {}
     class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
@@ -23,11 +23,11 @@ A typical use case is to resolve the type arguments across a type hierarchy from
     assert typeArguments[0] == HashSet.class;
     assert typeArguments[1] == ArrayList.class;
 
-We can also resolve type argument information that is present in field or method declarations:
+We can also fully resolve the raw class for any "generic type" such as from a Field or Method parameter:
     
     class Entity<ID extends Serializable> {
       ID id;
-      void setId(List<ID> id) {}
+      void setId(ID id) {}
     }
 
     class SomeEntity extends Entity<Long> {}
