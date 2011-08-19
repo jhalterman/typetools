@@ -1,9 +1,7 @@
 package org.typetools;
 
 import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.List;
+import java.lang.reflect.Type;
 
 import org.testng.annotations.Test;
 
@@ -53,12 +51,13 @@ public class Examples {
   }
 
   public void shouldResolveTypeFromFieldDeclaration() throws Exception {
-    Field field = Entity.class.getDeclaredField("id");
-    assert TypeResolver.resolveClass(field.getGenericType(), SomeEntity.class) == Long.class;
+    Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
+    assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
   }
 
   public void shouldResolveTypeFromMethodDeclaration() throws Exception {
-    Method mutator = Entity.class.getDeclaredMethod("setId", Serializable.class);
-    assert TypeResolver.resolveClass(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
+    Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class)
+        .getGenericParameterTypes()[0];
+    assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
   }
 }

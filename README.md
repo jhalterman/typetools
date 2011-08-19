@@ -12,7 +12,7 @@ One of the sore points with Java involves working with type information. In part
 
 ## Examples
 
-A typical use case is to resolve the type arguments across a type hierarchy from an initial type for a target type:
+A typical use case is to resolve the type arguments for a target type starting from some initial type:
 
     class Foo extends Bar<ArrayList<String>> {}
     class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
@@ -23,7 +23,7 @@ A typical use case is to resolve the type arguments across a type hierarchy from
     assert typeArguments[0] == HashSet.class;
     assert typeArguments[1] == ArrayList.class;
 
-We can also fully resolve the raw class for any "generic type" such as from a Field or Method parameter:
+We can also fully resolve the raw class for any generic type:
     
     class Entity<ID extends Serializable> {
       ID id;
@@ -32,15 +32,15 @@ We can also fully resolve the raw class for any "generic type" such as from a Fi
 
     class SomeEntity extends Entity<Long> {}
     
-    Field field = Entity.class.getDeclaredField("id");
-    Method mutator = Entity.class.getDeclaredMethod("setId", Serializable.class);
+    Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
+    Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
     
-    assert TypeResolver.resolveClass(field.getGenericType(), SomeEntity.class) == Long.class;
-    assert TypeResolver.resolveClass(mutator.getGenericParameterTypes()[0], SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
 
 ## Common Use Cases
 
-[Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type parameter instances from a layer supertype's subclass, regardless of the complexity of the type hierarchy. 
+[Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type arguments for the subclass of a layer supertype. 
 
 Following is an example layer supertype implementation of a generic DAO:
 
