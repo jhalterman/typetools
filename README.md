@@ -10,6 +10,16 @@ One of the sore points with Java involves working with type information. In part
 
 [Download](https://github.com/jhalterman/typetools/downloads) the latest TypeTools jar and add it to your classpath.
 
+## Usage
+
+Generic type resolution offered by the `TypeResolver` class:
+
+`resolveClass(Type genericType, Class<?> targetType)` Resolves the raw class for the given `genericType` using type variable information from the `targetType`.
+
+`resolveArguments(Class<I> initialType, Class<T> targetType)` Resolves the raw classes representing type arguments for the `targetType` by walking the type hierarchy upwards from the `initialType`.
+
+`resolveGenericType(Type initialType, Class<?> targetType)` Resolves the generic type for the `targetType` by walking the type hierarchy upwards from the `initialType`.
+
 ## Examples
 
 A typical use case is to resolve the type arguments for a target type starting from some initial type:
