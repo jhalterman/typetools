@@ -4,7 +4,7 @@ A simple, zero-dependency set of tools for working with Java types.
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type information for a given class. Among other things, TypeTools looks to solve this by fully resolving generic type information declared on any class, interface or method declaration.
+One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface or method.
 
 ## Setup
 
