@@ -57,6 +57,7 @@ public final class TypeResolver {
    * Disables the internal caching of TypeVariables.
    */
   public static void disableCache() {
+    typeVariableCache.clear();
     cacheEnabled = false;
   }
 
