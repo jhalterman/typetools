@@ -61,23 +61,23 @@ class Device {}
 class Router extends Device {}
 
 class GenericDAO<T, ID extends Serializable> {
-    protected Class<T> persistentClass;
-    protected Class<ID> idClass;
+  protected Class<T> persistentClass;
+  protected Class<ID> idClass;
 
-    private GenericDAO() {
-        Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
-        this.persistentClass = (Class<T>) typeArguments[0];
-        this.idClass = (Class<ID>) typeArguments[1];
-    }
+  private GenericDAO() {
+    Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
+    this.persistentClass = (Class<T>) typeArguments[0];
+    this.idClass = (Class<ID>) typeArguments[1];
+  }
 }
 
 class DeviceDAO<T extends Device> extends GenericDAO<T, Long> {}
 class RouterDAO extends DeviceDAO<Router> {}
 
 void assertTypeArguments() {
-    RouterDAO routerDAO = new RouterDAO();
-    assert routerDAO.persistentClass == Router.class;
-    assert routerDAO.idClass == Long.class;
+  RouterDAO routerDAO = new RouterDAO();
+  assert routerDAO.persistentClass == Router.class;
+  assert routerDAO.idClass == Long.class;
 }
 ```
 
