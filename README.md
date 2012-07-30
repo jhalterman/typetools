@@ -81,6 +81,15 @@ void assertTypeArguments() {
 }
 ```
 
+## Additional Features
+
+By default, type variable information for each resolved type is weakly cached by the `TypeResolver`. Caching can be enabled/disabled via:
+
+```java
+TypeResolver.enableCache();
+TypeResolver.disableCache();
+```
+
 ## License
 
 Copyright 2010-2011 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
