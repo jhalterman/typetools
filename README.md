@@ -22,29 +22,33 @@ Generic type resolution offered by the `TypeResolver` class:
 
 A typical use case is to resolve the type arguments for a target type starting from some initial type:
 
-    class Foo extends Bar<ArrayList<String>> {}
-    class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
-    interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
+```java
+class Foo extends Bar<ArrayList<String>> {}
+class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
+interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
-    Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
-    
-    assert typeArguments[0] == HashSet.class;
-    assert typeArguments[1] == ArrayList.class;
+Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
+
+assert typeArguments[0] == HashSet.class;
+assert typeArguments[1] == ArrayList.class;
+```
 
 We can also fully resolve the raw class for any generic type:
-    
-    class Entity<ID extends Serializable> {
-      ID id;
-      void setId(ID id) {}
-    }
 
-    class SomeEntity extends Entity<Long> {}
-    
-    Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
-    Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
-    
-    assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
-    assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
+```java
+class Entity<ID extends Serializable> {
+  ID id;
+  void setId(ID id) {}
+}
+
+class SomeEntity extends Entity<Long> {}
+
+Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
+Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
+
+assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
+assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
+```
 
 ## Common Use Cases
 
@@ -52,28 +56,30 @@ We can also fully resolve the raw class for any generic type:
 
 Following is an example layer supertype implementation of a generic DAO:
 
-    class Device {}
-    class Router extends Device {}
+```java
+class Device {}
+class Router extends Device {}
 
-    class GenericDAO<T, ID extends Serializable> {
-        protected Class<T> persistentClass;
-        protected Class<ID> idClass;
+class GenericDAO<T, ID extends Serializable> {
+    protected Class<T> persistentClass;
+    protected Class<ID> idClass;
 
-        private GenericDAO() {
-            Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
-            this.persistentClass = (Class<T>) typeArguments[0];
-            this.idClass = (Class<ID>) typeArguments[1];
-        }
+    private GenericDAO() {
+        Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
+        this.persistentClass = (Class<T>) typeArguments[0];
+        this.idClass = (Class<ID>) typeArguments[1];
     }
+}
 
-    class DeviceDAO<T extends Device> extends GenericDAO<T, Long> {}
-    class RouterDAO extends DeviceDAO<Router> {}
+class DeviceDAO<T extends Device> extends GenericDAO<T, Long> {}
+class RouterDAO extends DeviceDAO<Router> {}
 
-    void assertTypeArguments() {
-        RouterDAO routerDAO = new RouterDAO();
-        assert routerDAO.persistentClass == Router.class;
-        assert routerDAO.idClass == Long.class;
-    }
+void assertTypeArguments() {
+    RouterDAO routerDAO = new RouterDAO();
+    assert routerDAO.persistentClass == Router.class;
+    assert routerDAO.idClass == Long.class;
+}
+```
 
 ## License
 
