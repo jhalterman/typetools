@@ -1,4 +1,4 @@
-# TypeTools
+# TypeTools 0.2.1
 
 A simple, zero-dependency set of tools for working with Java types.
 
