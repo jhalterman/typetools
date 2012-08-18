@@ -1,8 +1,9 @@
-package org.typetools;
+package org.jodah.typetools;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
 
+import org.jodah.typetools.TypeResolver;
 import org.testng.annotations.Test;
 
 /**
