@@ -8,7 +8,15 @@ One of the sore points with Java involves working with type information. In part
 
 ## Setup
 
-[Download](https://github.com/jhalterman/typetools/downloads) the latest TypeTools jar and add it to your classpath.
+Add TypeTools as a Maven dependency:
+
+```xml
+<dependency>
+  <groupId>org.jodah</groupId>
+  <artifactId>typetools</artifactId>
+  <version>0.2.1</version>
+</dependency>
+```
 
 ## Usage
 
