@@ -1,4 +1,4 @@
-# TypeTools 0.2.1
+# TypeTools 0.3.0
 
 A simple, zero-dependency set of tools for working with Java types.
 
@@ -14,7 +14,7 @@ Add TypeTools as a Maven dependency:
 <dependency>
   <groupId>org.jodah</groupId>
   <artifactId>typetools</artifactId>
-  <version>0.2.1</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -22,10 +22,17 @@ Add TypeTools as a Maven dependency:
 
 Generic type resolution offered by the `TypeResolver` class:
 
-* `Class<?>[] resolveRawArguments(Class<T> type, Class<I> subType)`: Resolves the raw classes representing type arguments for the `type` using type variable information from the `subType`.
-* `Class<?> resolveRawArgument(Class<T> type, Class<I> subType)`: Resolves the raw class representing the type argument for the `type` using type variable information from the `subType`.
-* `Type resolveGenericType(Class<?> type, Type subType)`: Resolves the generic `type` using type variable information from the `subType`.
-* `Class<?> resolveRawClass(Type genericType, Class<?> subType)`: Resolves the raw class for the `genericType` using type variable information from the `subType`. 
+`resolveRawArguments(Class<T> type, Class<I> subType)`
+Resolves the raw classes representing type arguments for the `type` using type variable information from the `subType`.
+
+`resolveRawArgument(Class<T> type, Class<I> subType)`
+Resolves the raw class representing the type argument for the `type` using type variable information from the `subType`.
+
+`resolveGenericType(Class<?> type, Type subType)`
+Resolves the generic `type` using type variable information from the `subType`.
+
+`resolveRawClass(Type genericType, Class<?> subType)`
+Resolves the raw class for the `genericType` using type variable information from the `subType`. 
 
 ## Examples
 
