@@ -22,26 +22,27 @@ Add TypeTools as a Maven dependency:
 
 Generic type resolution offered by the `TypeResolver` class:
 
-* `resolveClass(Type genericType, Class<?> targetType)`: Resolves the raw class for the given `genericType` using type variable information from the `targetType`. 
-* `resolveArguments(Class<I> initialType, Class<T> targetType)`: Resolves the raw classes representing type arguments for the `targetType` by walking the type hierarchy upwards from the `initialType`.
-* `resolveGenericType(Type initialType, Class<?> targetType)`: Resolves the generic type for the `targetType` by walking the type hierarchy upwards from the `initialType`.
+* `Class<?>[] resolveRawArguments(Class<T> type, Class<I> subType)`: Resolves the raw classes representing type arguments for the `type` using type variable information from the `subType`.
+* `Class<?> resolveRawArgument(Class<T> type, Class<I> subType)`: Resolves the raw class representing the type argument for the `type` using type variable information from the `subType`.
+* `Type resolveGenericType(Class<?> type, Type subType)`: Resolves the generic `type` using type variable information from the `subType`.
+* `Class<?> resolveRawClass(Type genericType, Class<?> subType)`: Resolves the raw class for the `genericType` using type variable information from the `subType`. 
 
 ## Examples
 
-A typical use case is to resolve the type arguments for a target type starting from some initial type:
+A typical use case is to resolve the type arguments for a type given a sub-type:
 
 ```java
 class Foo extends Bar<ArrayList<String>> {}
 class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
 interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
 
-Class<?>[] typeArguments = TypeResolver.resolveArguments(Foo.class, Baz.class);
+Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Baz.class, Foo.class);
 
 assert typeArguments[0] == HashSet.class;
 assert typeArguments[1] == ArrayList.class;
 ```
 
-We can also fully resolve the raw class for any generic type:
+We can also fully resolve the raw class for any generic type given a sub-type:
 
 ```java
 class Entity<ID extends Serializable> {
@@ -54,13 +55,13 @@ class SomeEntity extends Entity<Long> {}
 Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
 Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
 
-assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
-assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
+assert TypeResolver.resolveRawClass(fieldType, SomeEntity.class) == Long.class;
+assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class;
 ```
 
 ## Common Use Cases
 
-[Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type arguments for the subclass of a layer supertype. 
+[Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type arguments for a layer supertype given a sub-type. 
 
 Following is an example layer supertype implementation of a generic DAO:
 
@@ -73,7 +74,7 @@ class GenericDAO<T, ID extends Serializable> {
   protected Class<ID> idClass;
 
   private GenericDAO() {
-    Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
+    Class<?>[] typeArguments = TypeResolver.resolveRawArguments(GenericDAO.class, getClass());
     this.persistentClass = (Class<T>) typeArguments[0];
     this.idClass = (Class<ID>) typeArguments[1];
   }
@@ -100,4 +101,4 @@ TypeResolver.disableCache();
 
 ## License
 
-Copyright 2010-2011 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2010-2013 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).

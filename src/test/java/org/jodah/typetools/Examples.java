@@ -23,7 +23,7 @@ public class Examples {
 
     @SuppressWarnings("unchecked")
     private GenericDAO() {
-      Class<?>[] typeArguments = TypeResolver.resolveArguments(getClass(), GenericDAO.class);
+      Class<?>[] typeArguments = TypeResolver.resolveRawArguments(GenericDAO.class, getClass());
       this.persistentClass = (Class<T>) typeArguments[0];
       this.idClass = (Class<ID>) typeArguments[1];
     }
@@ -53,12 +53,12 @@ public class Examples {
 
   public void shouldResolveTypeFromFieldDeclaration() throws Exception {
     Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
-    assert TypeResolver.resolveClass(fieldType, SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveRawClass(fieldType, SomeEntity.class) == Long.class;
   }
 
   public void shouldResolveTypeFromMethodDeclaration() throws Exception {
     Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class)
         .getGenericParameterTypes()[0];
-    assert TypeResolver.resolveClass(mutatorType, SomeEntity.class) == Long.class;
+    assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class;
   }
 }
