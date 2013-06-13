@@ -22,8 +22,8 @@ Add TypeTools as a Maven dependency:
 
 Generic type resolution offered by the `TypeResolver` class:
 
-* `resolveRawArguments(Class<T> type, Class<I> subType)`: Resolves the raw classes representing type arguments for a `type` using type variable information from a `subType`.
-* `resolveRawArgument(Class<T> type, Class<I> subType)`: Resolves the raw class representing the type argument for a `type` using type variable information from a `subType`.
+* `resolveRawArguments(Class<T> type, Class<S> subType)`: Resolves the raw classes representing type arguments for a `type` using type variable information from a `subType`.
+* `resolveRawArgument(Class<T> type, Class<S> subType)`: Resolves the raw class representing the type argument for a `type` using type variable information from a `subType`.
 * `resolveGenericType(Class<?> type, Type subType)`: Resolves the generic `type` using type variable information from a `subType`.
 * `resolveRawClass(Type genericType, Class<?> subType)`: Resolves the raw class for a `genericType` using type variable information from a `subType`. 
 
