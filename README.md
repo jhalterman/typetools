@@ -32,11 +32,11 @@ Generic type resolution offered by the `TypeResolver` class:
 A typical use case is to resolve the type arguments for a type given a sub-type:
 
 ```java
-class Foo extends Bar<ArrayList<String>> {}
-class Bar<T> implements Baz<HashSet<Integer>, T> {}
-interface Baz<T1, T2> {}
+interface Foo<T1, T2> {}
+class Bar<T> implements Foo<HashSet<Integer>, T> {}
+class Baz extends Bar<ArrayList<String>> {}
 
-Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Baz.class, Foo.class);
+Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Foo.class, Baz.class);
 
 assert typeArguments[0] == HashSet.class;
 assert typeArguments[1] == ArrayList.class;
