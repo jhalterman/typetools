@@ -33,8 +33,8 @@ A typical use case is to resolve the type arguments for a type given a sub-type:
 
 ```java
 class Foo extends Bar<ArrayList<String>> {}
-class Bar<T extends List<String>> implements Baz<HashSet<Integer>, T> {}
-interface Baz<T1 extends Set<Integer>, T2 extends List<String>> {}
+class Bar<T> implements Baz<HashSet<Integer>, T> {}
+interface Baz<T1, T2> {}
 
 Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Baz.class, Foo.class);
 
