@@ -99,6 +99,10 @@ TypeResolver.enableCache();
 TypeResolver.disableCache();
 ```
 
+## Docs
+
+JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
+
 ## License
 
 Copyright 2010-2013 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
