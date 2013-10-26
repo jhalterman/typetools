@@ -156,4 +156,11 @@ public class TypeResolverTest {
     TypeResolver.resolveRawArgument(Map.class, new HashMap<String, String>() {
     }.getClass());
   }
+
+  public void shouldResolveTypeParamFromAnonymousClass() {
+    List<String> stringList = new ArrayList<String>() {
+    };
+    Class<?> stringType = TypeResolver.resolveRawArgument(List.class, stringList.getClass());
+    assertEquals(stringType, String.class);
+  }
 }
