@@ -63,7 +63,7 @@ assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class
 
 [Layer supertypes](http://martinfowler.com/eaaCatalog/layerSupertype.html) often utilize type parameters that are populated by subclasses. A common use case for TypeTools is to resolve the type arguments for a layer supertype given a sub-type. 
 
-Following is an example layer supertype implementation of a generic DAO:
+Following is an example layer supertype implementation of a **Generic DAO**:
 
 ```java
 class Device {}
