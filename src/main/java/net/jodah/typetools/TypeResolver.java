@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jodah.typetools;
+package net.jodah.typetools;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;

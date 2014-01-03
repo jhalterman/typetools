@@ -1,4 +1,4 @@
-package org.jodah.typetools;
+package net.jodah.typetools;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
@@ -14,7 +14,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.jodah.typetools.TypeResolver.Unknown;
+import net.jodah.typetools.TypeResolver;
+import net.jodah.typetools.TypeResolver.Unknown;
+
 import org.testng.annotations.Test;
 
 /**
