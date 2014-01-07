@@ -1,4 +1,4 @@
-# TypeTools 0.3.0
+# TypeTools
 
 A simple, zero-dependency set of tools for working with Java types.
 
@@ -12,9 +12,9 @@ Add TypeTools as a Maven dependency:
 
 ```xml
 <dependency>
-  <groupId>org.jodah</groupId>
+  <groupId>net.jodah</groupId>
   <artifactId>typetools</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
