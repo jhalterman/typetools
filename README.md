@@ -1,4 +1,4 @@
-# TypeTools
+# TypeTools [![Build Status](https://travis-ci.org/jhalterman/typetools.png)](https://travis-ci.org/jhalterman/typetools)
 
 A simple, zero-dependency set of tools for working with Java types.
 
