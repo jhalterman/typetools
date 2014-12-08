@@ -64,8 +64,6 @@
           <execution>
             <id>default-compile</id>
             <configuration>
-              <showDeprecation>true</showDeprecation>
-              <showWarnings>true</showWarnings>
               <compilerArguments>
                 <source>${compileVersion}</source>
                 <target>${compileVersion}</target>
@@ -75,8 +73,6 @@
           <execution>
             <id>default-testCompile</id>
             <configuration>
-              <showDeprecation>true</showDeprecation>
-              <showWarnings>true</showWarnings>
               <compilerArguments>
                 <source>${testCompileVersion}</source>
                 <target>${testCompileVersion}</target>
@@ -107,6 +103,22 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <additionalparam>-Xdoclint:none</additionalparam>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-gpg-plugin</artifactId>
         <executions>
           <execution>
@@ -122,6 +134,34 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>release</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.2</version>
+            <executions>
+              <execution>
+                <id>default-compile</id>
+                <configuration>
+                  <compilerArguments>
+                    <source>${compileVersion}</source>
+                    <target>${compileVersion}</target>
+                  </compilerArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>javadoc</id>
       <build>
