@@ -6,7 +6,7 @@
 -sourcepath
 '/Users/jonathan/dev/typetools/src/main/java'
 -bottom
-'Copyright &#169; 2014. All rights reserved.'
+'Copyright &#169; 2014. All Rights Reserved.'
 -charset
 'UTF-8'
 -d
@@ -14,10 +14,10 @@
 -docencoding
 'UTF-8'
 -doctitle
-'TypeTools 0.3.2-SNAPSHOT API'
+'TypeTools 0.4.1-SNAPSHOT API'
 -linkoffline
 'http://docs.oracle.com/javase/7/docs/api' '/Users/jonathan/dev/typetools/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle
-'TypeTools 0.3.2-SNAPSHOT API'
+'TypeTools 0.4.1-SNAPSHOT API'
