@@ -16,7 +16,7 @@
 -doctitle
 'TypeTools 0.3.2-SNAPSHOT API'
 -linkoffline
-'http://docs.oracle.com/javase/6/docs/api' '/Users/jonathan/dev/typetools/target/javadoc-bundle-options'
+'http://docs.oracle.com/javase/7/docs/api' '/Users/jonathan/dev/typetools/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle
