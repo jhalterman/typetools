@@ -3,8 +3,6 @@ package net.jodah.typetools;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 
-import net.jodah.typetools.TypeResolver;
-
 import org.testng.annotations.Test;
 
 /**

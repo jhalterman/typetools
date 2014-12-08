@@ -95,12 +95,14 @@ class GenericDAO<T, ID extends Serializable> {
 
 class DeviceDAO<T extends Device> extends GenericDAO<T, Long> {}
 class RouterDAO extends DeviceDAO<Router> {}
+```
 
-void assertTypeArguments() {
-  RouterDAO routerDAO = new RouterDAO();
-  assert routerDAO.persistentClass == Router.class;
-  assert routerDAO.idClass == Long.class;
-}
+We can assert that type arguments are resolved as expected:
+
+```java
+RouterDAO routerDAO = new RouterDAO();
+assert routerDAO.persistentClass == Router.class;
+assert routerDAO.idClass == Long.class;
 ```
 
 ## Additional Features
@@ -116,12 +118,10 @@ TypeResolver.disableCache();
 
 #### On Lambda Support
 
-Lambda type argument resolution has currently been tested against:
+Lambda type argument resolution is currently supported for:
 
 * Oracle JDK 8
 * Open JDK 8
-
-Other runtimes may work as well, but have not yet been tested.
 
 #### On Unresolvable Lambda Type Arguments
 
