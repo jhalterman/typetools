@@ -14,7 +14,7 @@ Add TypeTools as a Maven dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>typetools</artifactId>
-  <version>0.3.1</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
@@ -103,6 +103,15 @@ void assertTypeArguments() {
 }
 ```
 
+## Additional Features
+
+By default, type variable information for each resolved type is weakly cached by the `TypeResolver`. Caching can be enabled/disabled via:
+
+```java
+TypeResolver.enableCache();
+TypeResolver.disableCache();
+```
+
 ## Additional Notes
 
 #### On Lambda Support
@@ -128,16 +137,6 @@ assert typeArgs[2] == Unknown.class;
 ```
 
 Since the type parameter `Z` in this example is unused by `Function`, its argument resolves to `Unknown.class`.
-
-
-## Additional Features
-
-By default, type variable information for each resolved type is weakly cached by the `TypeResolver`. Caching can be enabled/disabled via:
-
-```java
-TypeResolver.enableCache();
-TypeResolver.disableCache();
-```
 
 ## Docs
 

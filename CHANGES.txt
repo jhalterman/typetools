@@ -1,3 +1,0 @@
-0.3.1
-
-- Added support for resolving type arguments on inner classes
