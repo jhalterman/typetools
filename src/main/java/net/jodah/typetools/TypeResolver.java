@@ -245,18 +245,18 @@ public final class TypeResolver {
 
       // Populate lambdas
       if (functionalInterface != null)
-        buildTypeVariableMap(functionalInterface, targetType, map);
+        populateLambdaArgs(functionalInterface, targetType, map);
 
       // Populate interfaces
-      buildTypeVariableMap(targetType.getGenericInterfaces(), map, functionalInterface != null);
+      populateSuperTypeArgs(targetType.getGenericInterfaces(), map, functionalInterface != null);
 
       // Populate super classes and interfaces
       Type genericType = targetType.getGenericSuperclass();
       Class<?> type = targetType.getSuperclass();
       while (type != null && !Object.class.equals(type)) {
         if (genericType instanceof ParameterizedType)
-          buildTypeVariableMap((ParameterizedType) genericType, map, false);
-        buildTypeVariableMap(type.getGenericInterfaces(), map, false);
+          populateTypeArgs((ParameterizedType) genericType, map, false);
+        populateSuperTypeArgs(type.getGenericInterfaces(), map, false);
 
         genericType = type.getGenericSuperclass();
         type = type.getSuperclass();
@@ -267,7 +267,7 @@ public final class TypeResolver {
       while (type.isMemberClass()) {
         genericType = type.getGenericSuperclass();
         if (genericType instanceof ParameterizedType)
-          buildTypeVariableMap((ParameterizedType) genericType, map, functionalInterface != null);
+          populateTypeArgs((ParameterizedType) genericType, map, functionalInterface != null);
 
         type = type.getEnclosingClass();
       }
@@ -282,66 +282,67 @@ public final class TypeResolver {
   /**
    * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
    */
-  private static void buildTypeVariableMap(Class<?> functionalInterface, final Class<?> lambdaType,
+  private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
     Map<TypeVariable<?>, Type> map) {
-    try {
-      // Find SAM
-      for (Method m : functionalInterface.getMethods()) {
-        if (!m.isDefault() && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
-          // Get functional interface's type params
-          Type returnTypeVar = m.getGenericReturnType();
-          Type[] paramTypeVars = m.getGenericParameterTypes();
+    if (GET_CONSTANT_POOL != null) {
+      try {
+        // Find SAM
+        for (Method m : functionalInterface.getMethods()) {
+          if (!m.isDefault() && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
+            // Get functional interface's type params
+            Type returnTypeVar = m.getGenericReturnType();
+            Type[] paramTypeVars = m.getGenericParameterTypes();
 
-          // Get lambda's type arguments
-          ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
-          String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 2);
+            // Get lambda's type arguments
+            ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
+            String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 2);
 
-          if (returnTypeVar instanceof TypeVariable) {
-            String returnTypeName = TypeDescriptor.getReturnType(methodRefInfo[2]).getClassName();
-            if (!returnTypeName.equals("void"))
-              map.put((TypeVariable<?>) returnTypeVar, Class.forName(returnTypeName));
+            if (returnTypeVar instanceof TypeVariable) {
+              String returnTypeName = TypeDescriptor.getReturnType(methodRefInfo[2]).getClassName();
+              if (!returnTypeName.equals("void"))
+                map.put((TypeVariable<?>) returnTypeVar, Class.forName(returnTypeName));
+            }
+
+            TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
+            for (int i = 0; i < arguments.length; i++)
+              if (paramTypeVars[i] instanceof TypeVariable)
+                map.put((TypeVariable<?>) paramTypeVars[i],
+                  Class.forName(arguments[i].getClassName()));
+            break;
           }
-
-          TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
-          for (int i = 0; i < arguments.length; i++)
-            if (paramTypeVars[i] instanceof TypeVariable)
-              map.put((TypeVariable<?>) paramTypeVars[i],
-                Class.forName(arguments[i].getClassName()));
-          break;
         }
-      }
 
-    } catch (Exception ignore) {
+      } catch (Exception ignore) {
+      }
     }
   }
 
   /**
    * Populates the {@code map} with with variable/argument pairs for the given {@code types}.
    */
-  private static void buildTypeVariableMap(final Type[] types,
-    final Map<TypeVariable<?>, Type> map, boolean depthFirst) {
+  private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
+    boolean depthFirst) {
     for (Type type : types) {
       if (type instanceof ParameterizedType) {
         ParameterizedType parameterizedType = (ParameterizedType) type;
         if (!depthFirst)
-          buildTypeVariableMap(parameterizedType, map, depthFirst);
+          populateTypeArgs(parameterizedType, map, depthFirst);
         Type rawType = parameterizedType.getRawType();
         if (rawType instanceof Class)
-          buildTypeVariableMap(((Class<?>) rawType).getGenericInterfaces(), map, depthFirst);
+          populateSuperTypeArgs(((Class<?>) rawType).getGenericInterfaces(), map, depthFirst);
         if (depthFirst)
-          buildTypeVariableMap(parameterizedType, map, depthFirst);
+          populateTypeArgs(parameterizedType, map, depthFirst);
       } else if (type instanceof Class) {
-        buildTypeVariableMap(((Class<?>) type).getGenericInterfaces(), map, depthFirst);
+        populateSuperTypeArgs(((Class<?>) type).getGenericInterfaces(), map, depthFirst);
       }
     }
   }
 
   /**
-   * Populates the {@code typeVariableMap} with type arguments and parameters for the given
-   * {@code type}.
+   * Populates the {@code map} with variable/argument pairs for the given {@code type}.
    */
-  private static void buildTypeVariableMap(ParameterizedType type,
-    Map<TypeVariable<?>, Type> typeVariableMap, boolean depthFirst) {
+  private static void populateTypeArgs(ParameterizedType type, Map<TypeVariable<?>, Type> map,
+    boolean depthFirst) {
     if (type.getRawType() instanceof Class) {
       TypeVariable<?>[] typeVariables = ((Class<?>) type.getRawType()).getTypeParameters();
       Type[] typeArguments = type.getActualTypeArguments();
@@ -349,7 +350,7 @@ public final class TypeResolver {
       if (type.getOwnerType() != null) {
         Type owner = type.getOwnerType();
         if (owner instanceof ParameterizedType)
-          buildTypeVariableMap((ParameterizedType) owner, typeVariableMap, depthFirst);
+          populateTypeArgs((ParameterizedType) owner, map, depthFirst);
       }
 
       for (int i = 0; i < typeArguments.length; i++) {
@@ -357,25 +358,25 @@ public final class TypeResolver {
         Type typeArgument = typeArguments[i];
 
         if (typeArgument instanceof Class) {
-          typeVariableMap.put(variable, typeArgument);
+          map.put(variable, typeArgument);
         } else if (typeArgument instanceof GenericArrayType) {
-          typeVariableMap.put(variable, typeArgument);
+          map.put(variable, typeArgument);
         } else if (typeArgument instanceof ParameterizedType) {
-          typeVariableMap.put(variable, typeArgument);
+          map.put(variable, typeArgument);
         } else if (typeArgument instanceof TypeVariable) {
           TypeVariable<?> typeVariableArgument = (TypeVariable<?>) typeArgument;
           if (depthFirst) {
-            Type existingType = typeVariableMap.get(variable);
+            Type existingType = map.get(variable);
             if (existingType != null) {
-              typeVariableMap.put(typeVariableArgument, existingType);
+              map.put(typeVariableArgument, existingType);
               continue;
             }
           }
 
-          Type resolvedType = typeVariableMap.get(typeVariableArgument);
+          Type resolvedType = map.get(typeVariableArgument);
           if (resolvedType == null)
             resolvedType = resolveBound(typeVariableArgument);
-          typeVariableMap.put(variable, resolvedType);
+          map.put(variable, resolvedType);
         }
       }
     }
