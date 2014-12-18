@@ -107,4 +107,14 @@ public class LambdaTest {
     assertEquals(TypeResolver.resolveRawArguments(Function.class, fn1.getClass()), new Class<?>[] {
         String.class, Integer.class });
   }
+  
+  public void shouldHandlePassedLambda() {
+    handlePassedLambda((String s) -> Integer.valueOf(s));
+  }
+  
+  private <T, R> void handlePassedLambda(Function<T, R> fn) {
+    Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
+    assertEquals(typeArgs[0], String.class);
+    assertEquals(typeArgs[1], Integer.class);
+  }
 }
