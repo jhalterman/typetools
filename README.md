@@ -4,7 +4,7 @@ A simple, zero-dependency set of tools for working with Java types.
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics implementation doesn't provide a way to resolve the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface, lambda expression or method.
+One of the sore points with Java involves working with type information. In particular, Java's generics do not provide a way to resolve the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface, lambda expression or method.
 
 ## Setup
 
@@ -20,7 +20,7 @@ Add TypeTools as a Maven dependency:
 
 ## Usage
 
-The `TypeResolver` class provides the following methods:
+The [TypeResolver](http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html) class provides the following methods:
 
 * `Class<?>[] resolveRawArguments(Class<T> type, Class<S> subType)`
 <br>Resolves the raw arguments for a `type` using type variable information from a `subType`.
@@ -125,11 +125,12 @@ Lambda type argument resolution is currently supported for:
 
 #### On Unresolvable Lambda Type Arguments
 
-When resolving type arguments with lambda expressions is that only type parameters used in the functional interface's method signature can be resolved. Ex:
+When resolving type arguments with lambda expressions, only type parameters used in the functional interface's method signature can be resolved. Ex:
 
 ```java
 interface ExtraFunction<T, R, Z> extends Function<T, R>{}
 ExtraFunction<String, Integer, Long> strToInt = s -> Integer.valueOf(s);
+Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, strToInt.getClass());
 
 assert typeArgs[0] == String.class;
 assert typeArgs[1] == Integer.class;
@@ -144,4 +145,4 @@ JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
 
 ## License
 
-Copyright 2010-2014 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2010-2015 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
