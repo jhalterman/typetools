@@ -45,7 +45,7 @@ assert typeArgs[0] == HashSet.class;
 assert typeArgs[1] == ArrayList.class;
 ```
 
-Type arguments can also be resolved for lambda expressions:
+Type arguments can also be resolved from lambda expressions:
 
 ```java
 Function<String, Integer> strToInt = s -> Integer.valueOf(s);
@@ -55,11 +55,11 @@ assert typeArgs[0] == String.class;
 assert typeArgs[1] == Integer.class;
 ```
 
-And for method references:
+And from method references:
 
 ```java
 Comparator<String> comparator = String::compareToIgnoreCase;
-Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator, comparator.getClass());
+Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator.class, comparator.getClass());
 
 assert typeArg == String.class;
 ```
