@@ -115,11 +115,24 @@ public class LambdaTest {
 
   /**
    * Asserts that arguments can be resolved for interfaces that contain additional Object.class
-   * overriding methods. Also asserts that method references with primitive types that are auto
-   * boxed to primitive wrappers are properly handled.
+   * overriding methods.
    */
   public void shouldResolveArgumentsFromNonSamMethodRef() throws Throwable {
     I1<String, Integer> fn = String::compareToIgnoreCase;
+    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()), new Class<?>[] { String.class,
+        Integer.class });
+  }
+
+  /**
+   * Asserts that method references with primitive type arguments that are auto boxed to primitive
+   * wrappers are properly handled.
+   * 
+   * Note: disabled since method signature exposed via constant pool contains convert(String,
+   * Object). Subsequent bytecode contains convert(String, String). May need ASM to read.
+   */
+  @Test(enabled = false)
+  public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
+    I1<String, Integer> fn = Baz::convert;
     assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()), new Class<?>[] { String.class,
         Integer.class });
   }
