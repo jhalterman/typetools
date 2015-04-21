@@ -1,5 +1,5 @@
 /**
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +54,12 @@ public final class TypeResolver {
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections.synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static boolean cacheEnabled = true;
+  private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
 
   static {
+    for (Method method : Object.class.getDeclaredMethods())
+      OBJECT_METHODS.put(method.getName(), method);
+
     try {
       GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
       GET_CONSTANT_POOL.setAccessible(true);
@@ -111,8 +116,8 @@ public final class TypeResolver {
       return Unknown.class;
 
     if (arguments.length != 1)
-      throw new IllegalArgumentException("Expected 1 argument for generic type " + genericType
-        + " but found " + arguments.length);
+      throw new IllegalArgumentException("Expected 1 argument for generic type " + genericType + " but found "
+        + arguments.length);
 
     return arguments[0];
   }
@@ -228,15 +233,13 @@ public final class TypeResolver {
     } else if (genericType instanceof TypeVariable) {
       TypeVariable<?> variable = (TypeVariable<?>) genericType;
       genericType = getTypeVariableMap(subType, null).get(variable);
-      genericType = genericType == null ? resolveBound(variable) : resolveRawClass(genericType,
-        subType);
+      genericType = genericType == null ? resolveBound(variable) : resolveRawClass(genericType, subType);
     }
 
     return genericType instanceof Class ? (Class<?>) genericType : Unknown.class;
   }
 
-  private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
-    Class<?> functionalInterface) {
+  private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType, Class<?> functionalInterface) {
     Reference<Map<TypeVariable<?>, Type>> ref = typeVariableCache.get(targetType);
     Map<TypeVariable<?>, Type> map = ref != null ? ref.get() : null;
 
@@ -289,6 +292,11 @@ public final class TypeResolver {
         // Find SAM
         for (Method m : functionalInterface.getMethods()) {
           if (!m.isDefault() && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
+            // Skip methods that override Object.class
+            Method objectMethod = OBJECT_METHODS.get(m.getName());
+            if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
+              continue;
+
             // Get functional interface's type params
             Type returnTypeVar = m.getGenericReturnType();
             Type[] paramTypeVars = m.getGenericParameterTypes();
@@ -297,17 +305,29 @@ public final class TypeResolver {
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
             String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 2);
 
+            // Skip auto boxing methods
+            if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22)
+              methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 8);
+
             if (returnTypeVar instanceof TypeVariable) {
-              String returnTypeName = TypeDescriptor.getReturnType(methodRefInfo[2]).getClassName();
-              if (!returnTypeName.equals("void"))
-                map.put((TypeVariable<?>) returnTypeVar, Class.forName(returnTypeName));
+              Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType();
+              if (!returnType.equals(Void.class))
+                map.put((TypeVariable<?>) returnTypeVar, returnType);
             }
 
             TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
+
+            // Handle arbitrary object instance method references
+            int offset = 0;
+            if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
+              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0]).getType();
+              map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
+              offset = 1;
+            }
+
             for (int i = 0; i < arguments.length; i++)
-              if (paramTypeVars[i] instanceof TypeVariable)
-                map.put((TypeVariable<?>) paramTypeVars[i],
-                  Class.forName(arguments[i].getClassName()));
+              if (paramTypeVars[i + offset] instanceof TypeVariable)
+                map.put((TypeVariable<?>) paramTypeVars[i + offset], arguments[i].getType());
             break;
           }
         }
@@ -320,8 +340,7 @@ public final class TypeResolver {
   /**
    * Populates the {@code map} with with variable/argument pairs for the given {@code types}.
    */
-  private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
-    boolean depthFirst) {
+  private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map, boolean depthFirst) {
     for (Type type : types) {
       if (type instanceof ParameterizedType) {
         ParameterizedType parameterizedType = (ParameterizedType) type;
@@ -341,8 +360,7 @@ public final class TypeResolver {
   /**
    * Populates the {@code map} with variable/argument pairs for the given {@code type}.
    */
-  private static void populateTypeArgs(ParameterizedType type, Map<TypeVariable<?>, Type> map,
-    boolean depthFirst) {
+  private static void populateTypeArgs(ParameterizedType type, Map<TypeVariable<?>, Type> map, boolean depthFirst) {
     if (type.getRawType() instanceof Class) {
       TypeVariable<?>[] typeVariables = ((Class<?>) type.getRawType()).getTypeParameters();
       Type[] typeArguments = type.getActualTypeArguments();

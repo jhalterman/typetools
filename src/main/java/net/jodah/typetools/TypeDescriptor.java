@@ -29,7 +29,6 @@
  */
 package net.jodah.typetools;
 
-
 /**
  * A Java field or method type. This class can be used to make it easier to manipulate type and
  * method descriptors.
@@ -191,6 +190,68 @@ final class TypeDescriptor {
   }
 
   /**
+   * Returns a TypeDescriptor for the internal type.
+   */
+  public static TypeDescriptor getInternalType(final String internalType) {
+    return getType(internalType.toCharArray(), 0);
+  }
+
+  /**
+   * Returns the Java type corresponding to the given internal name.
+   * 
+   * @param internalName an internal name.
+   * @return the Java type corresponding to the given internal name.
+   */
+  public static TypeDescriptor getObjectType(final String internalName) {
+    char[] buf = internalName.toCharArray();
+    return new TypeDescriptor(buf[0] == '[' ? ARRAY : OBJECT, buf, 0, buf.length);
+  }
+
+  /**
+   * Returns the Java types corresponding to the argument types of the given method descriptor.
+   * 
+   * @param methodDescriptor a method descriptor.
+   * @return the Java types corresponding to the argument types of the given method descriptor.
+   */
+  public static TypeDescriptor[] getArgumentTypes(final String methodDescriptor) {
+    char[] buf = methodDescriptor.toCharArray();
+    int off = 1;
+    int size = 0;
+    while (true) {
+      char car = buf[off++];
+      if (car == ')') {
+        break;
+      } else if (car == 'L') {
+        while (buf[off++] != ';') {
+        }
+        ++size;
+      } else if (car != '[') {
+        ++size;
+      }
+    }
+    TypeDescriptor[] args = new TypeDescriptor[size];
+    off = 1;
+    size = 0;
+    while (buf[off] != ')') {
+      args[size] = getType(buf, off);
+      off += args[size].len + (args[size].sort == OBJECT ? 2 : 0);
+      size += 1;
+    }
+    return args;
+  }
+
+  /**
+   * Returns the Java type corresponding to the return type of the given method descriptor.
+   * 
+   * @param methodDescriptor a method descriptor.
+   * @return the Java type corresponding to the return type of the given method descriptor.
+   */
+  public static TypeDescriptor getReturnType(final String methodDescriptor) {
+    char[] buf = methodDescriptor.toCharArray();
+    return getType(buf, methodDescriptor.indexOf(')') + 1);
+  }
+
+  /**
    * Returns the Java type corresponding to the given type descriptor. For method descriptors, buf
    * is supposed to contain nothing more than the descriptor itself.
    * 
@@ -244,91 +305,47 @@ final class TypeDescriptor {
   }
 
   /**
-   * Returns the Java types corresponding to the argument types of the given method descriptor.
+   * Returns the raw class corresponding to this type descriptor. Primitive types return their
+   * corresponding wrappers.
    * 
-   * @param methodDescriptor a method descriptor.
-   * @return the Java types corresponding to the argument types of the given method descriptor.
+   * @return the raw class corresponding to this type descriptor
    */
-  static TypeDescriptor[] getArgumentTypes(final String methodDescriptor) {
-    char[] buf = methodDescriptor.toCharArray();
-    int off = 1;
-    int size = 0;
-    while (true) {
-      char car = buf[off++];
-      if (car == ')') {
-        break;
-      } else if (car == 'L') {
-        while (buf[off++] != ';') {
-        }
-        ++size;
-      } else if (car != '[') {
-        ++size;
+  public Class<?> getType() {
+    try {
+      switch (sort) {
+        case VOID:
+          return Void.class;
+        case BOOLEAN:
+          return Boolean.class;
+        case CHAR:
+          return Character.class;
+        case BYTE:
+          return Byte.class;
+        case SHORT:
+          return Short.class;
+        case INT:
+          return Integer.class;
+        case FLOAT:
+          return Float.class;
+        case LONG:
+          return Long.class;
+        case DOUBLE:
+          return Double.class;
+        case ARRAY:
+          TypeDescriptor elementType = getElementType();
+          StringBuilder sb = new StringBuilder();
+          for (int i = getDimensions(); i > 0; --i)
+            sb.append("[");
+          sb.append('L').append(elementType.getType().getName()).append(';');
+          return Class.forName(sb.toString());
+        case OBJECT:
+          return Class.forName(new String(buf, off, len).replace('/', '.'));
+        default:
+          return null;
       }
+    } catch (Exception e) {
+      return null;
     }
-    TypeDescriptor[] args = new TypeDescriptor[size];
-    off = 1;
-    size = 0;
-    while (buf[off] != ')') {
-      args[size] = getType(buf, off);
-      off += args[size].len + (args[size].sort == OBJECT ? 2 : 0);
-      size += 1;
-    }
-    return args;
-  }
-
-  /**
-   * Returns the binary name of the class corresponding to this type. This method must not be used
-   * on method types.
-   * 
-   * @return the binary name of the class corresponding to this type.
-   */
-  public String getClassName() {
-    switch (sort) {
-      case VOID:
-        return "void";
-      case BOOLEAN:
-        return "boolean";
-      case CHAR:
-        return "char";
-      case BYTE:
-        return "byte";
-      case SHORT:
-        return "short";
-      case INT:
-        return "int";
-      case FLOAT:
-        return "float";
-      case LONG:
-        return "long";
-      case DOUBLE:
-        return "double";
-      case ARRAY:
-        StringBuilder sb = new StringBuilder(getElementType().getClassName());
-        for (int i = getDimensions(); i > 0; --i) {
-          sb.append("[]");
-        }
-        return sb.toString();
-      case OBJECT:
-        return new String(buf, off, len).replace('/', '.');
-      default:
-        return null;
-    }
-  }
-  
-  
-  
-  /**
-   * Returns the Java type corresponding to the return type of the given
-   * method descriptor.
-   * 
-   * @param methodDescriptor
-   *            a method descriptor.
-   * @return the Java type corresponding to the return type of the given
-   *         method descriptor.
-   */
-  public static TypeDescriptor getReturnType(final String methodDescriptor) {
-      char[] buf = methodDescriptor.toCharArray();
-      return getType(buf, methodDescriptor.indexOf(')') + 1);
   }
 
   /**
@@ -353,5 +370,9 @@ final class TypeDescriptor {
    */
   public TypeDescriptor getElementType() {
     return getType(buf, off + getDimensions());
+  }
+
+  public String toString() {
+    return getType().getName();
   }
 }

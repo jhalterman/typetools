@@ -55,6 +55,15 @@ assert typeArgs[0] == String.class;
 assert typeArgs[1] == Integer.class;
 ```
 
+And for method references:
+
+```java
+Comparator<String> comparator = String::compareToIgnoreCase;
+Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator, comparator.getClass());
+
+assert typeArg == String.class;
+```
+
 We can also resolve the raw class for any generic type, given a sub-type:
 
 ```java
