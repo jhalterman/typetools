@@ -148,6 +148,14 @@ assert typeArgs[2] == Unknown.class;
 
 Since the type parameter `Z` in this example is unused by `Function`, its argument resolves to `Unknown.class`.
 
+#### On OSGi Support
+
+When using TypeTools in an OSGi environment where lambda or method reference type argument resolution is desired, the `sun.reflect` system package should be exported to the application bundles. For example, for Felix, add the following to your config.properties file:
+
+```
+org.osgi.framework.system.packages.extra=sun.reflect
+```
+
 ## Docs
 
 JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
