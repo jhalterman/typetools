@@ -311,6 +311,17 @@ final class TypeDescriptor {
    * @return the raw class corresponding to this type descriptor
    */
   public Class<?> getType() {
+	  return getType(null);
+  }
+  
+  /**
+   * Returns the raw class corresponding to this type descriptor. Primitive types return their
+   * corresponding wrappers.
+   * 
+   * @param loader the class loader used to load the actual raw class.
+   * @return the raw class corresponding to this type descriptor
+   */
+  public Class<?> getType(ClassLoader loader) {
     try {
       switch (sort) {
         case VOID:
@@ -337,9 +348,10 @@ final class TypeDescriptor {
           for (int i = getDimensions(); i > 0; --i)
             sb.append("[");
           sb.append('L').append(elementType.getType().getName()).append(';');
-          return Class.forName(sb.toString());
+          return loader == null ? Class.forName(sb.toString()) : loader.loadClass(sb.toString());
         case OBJECT:
-          return Class.forName(new String(buf, off, len).replace('/', '.'));
+          String clazz = new String(buf, off, len).replace('/', '.');
+          return loader == null ? Class.forName(clazz) : loader.loadClass(clazz); 
         default:
           return null;
       }

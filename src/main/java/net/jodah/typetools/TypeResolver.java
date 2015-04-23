@@ -310,7 +310,7 @@ public final class TypeResolver {
               methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 8);
 
             if (returnTypeVar instanceof TypeVariable) {
-              Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType();
+              Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
               if (!returnType.equals(Void.class))
                 map.put((TypeVariable<?>) returnTypeVar, returnType);
             }
@@ -320,14 +320,14 @@ public final class TypeResolver {
             // Handle arbitrary object instance method references
             int offset = 0;
             if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
-              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0]).getType();
+              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0]).getType(lambdaType.getClassLoader());
               map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
               offset = 1;
             }
 
             for (int i = 0; i < arguments.length; i++)
               if (paramTypeVars[i + offset] instanceof TypeVariable)
-                map.put((TypeVariable<?>) paramTypeVars[i + offset], arguments[i].getType());
+                map.put((TypeVariable<?>) paramTypeVars[i + offset], arguments[i].getType(lambdaType.getClassLoader()));
             break;
           }
         }
