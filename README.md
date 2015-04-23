@@ -37,12 +37,12 @@ A typical use case is to resolve arguments for a type, given a sub-type:
 
 ```java
 interface Foo<T1, T2> {}
-class Bar implements Foo<HashSet<Integer>, ArrayList<String>> {}
+class Bar implements Foo<Integer, String> {}
 
 Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Foo.class, Bar.class);
 
-assert typeArgs[0] == HashSet.class;
-assert typeArgs[1] == ArrayList.class;
+assert typeArgs[0] == Integer.class;
+assert typeArgs[1] == String.class;
 ```
 
 Type arguments can also be resolved from lambda expressions:
