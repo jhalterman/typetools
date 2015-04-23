@@ -14,7 +14,7 @@ Add TypeTools as a Maven dependency:
 <dependency>
   <groupId>net.jodah</groupId>
   <artifactId>typetools</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
 </dependency>
 ```
 
