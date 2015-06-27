@@ -40,6 +40,7 @@ import sun.reflect.ConstantPool;
  */
 @SuppressWarnings("restriction")
 public final class TypeResolver {
+  private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
 
   private TypeResolver() {
@@ -52,18 +53,27 @@ public final class TypeResolver {
   }
 
   /** Cache of type variable/argument pairs */
-  private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections.synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
+  private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
+      .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static boolean cacheEnabled = true;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
 
   static {
-    for (Method method : Object.class.getDeclaredMethods())
-      OBJECT_METHODS.put(method.getName(), method);
+    String javaVersion = System.getProperty("java.version").substring(0, 3);
+    SUPPORTS_LAMBDAS = Double.valueOf(javaVersion) >= 1.8;
 
-    try {
-      GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
-      GET_CONSTANT_POOL.setAccessible(true);
-    } catch (Exception e) {
+    if (SUPPORTS_LAMBDAS) {
+      for (Method method : Object.class.getDeclaredMethods())
+        OBJECT_METHODS.put(method.getName(), method);
+
+      try {
+        GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
+        GET_CONSTANT_POOL.setAccessible(true);
+      } catch (Exception e) {
+      }
+
+      if (GET_CONSTANT_POOL == null)
+        SUPPORTS_LAMBDAS = false;
     }
   }
 
@@ -116,8 +126,8 @@ public final class TypeResolver {
       return Unknown.class;
 
     if (arguments.length != 1)
-      throw new IllegalArgumentException("Expected 1 argument for generic type " + genericType + " but found "
-        + arguments.length);
+      throw new IllegalArgumentException(
+          "Expected 1 argument for generic type " + genericType + " but found " + arguments.length);
 
     return arguments[0];
   }
@@ -152,10 +162,11 @@ public final class TypeResolver {
     Class<?>[] result = null;
 
     // Handle lambdas
-    if (GET_CONSTANT_POOL != null && subType.isSynthetic()) {
+    if (SUPPORTS_LAMBDAS && subType.isSynthetic()) {
       Class<?> functionalInterface = genericType instanceof ParameterizedType
-        && ((ParameterizedType) genericType).getRawType() instanceof Class ? (Class<?>) ((ParameterizedType) genericType).getRawType()
-        : genericType instanceof Class ? (Class<?>) genericType : null;
+          && ((ParameterizedType) genericType).getRawType() instanceof Class
+              ? (Class<?>) ((ParameterizedType) genericType).getRawType()
+              : genericType instanceof Class ? (Class<?>) genericType : null;
       if (functionalInterface != null && functionalInterface.isInterface())
         getTypeVariableMap(subType, functionalInterface);
     }
@@ -239,7 +250,8 @@ public final class TypeResolver {
     return genericType instanceof Class ? (Class<?>) genericType : Unknown.class;
   }
 
-  private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType, Class<?> functionalInterface) {
+  private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
+      Class<?> functionalInterface) {
     Reference<Map<TypeVariable<?>, Type>> ref = typeVariableCache.get(targetType);
     Map<TypeVariable<?>, Type> map = ref != null ? ref.get() : null;
 
@@ -286,7 +298,7 @@ public final class TypeResolver {
    * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
    */
   private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-    Map<TypeVariable<?>, Type> map) {
+      Map<TypeVariable<?>, Type> map) {
     if (GET_CONSTANT_POOL != null) {
       try {
         // Find SAM
@@ -320,7 +332,8 @@ public final class TypeResolver {
             // Handle arbitrary object instance method references
             int offset = 0;
             if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
-              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0]).getType(lambdaType.getClassLoader());
+              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0])
+                  .getType(lambdaType.getClassLoader());
               map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
               offset = 1;
             }
@@ -340,7 +353,8 @@ public final class TypeResolver {
   /**
    * Populates the {@code map} with with variable/argument pairs for the given {@code types}.
    */
-  private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map, boolean depthFirst) {
+  private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
+      boolean depthFirst) {
     for (Type type : types) {
       if (type instanceof ParameterizedType) {
         ParameterizedType parameterizedType = (ParameterizedType) type;
