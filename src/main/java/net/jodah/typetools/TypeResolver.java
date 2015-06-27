@@ -40,28 +40,16 @@ import sun.reflect.ConstantPool;
  */
 @SuppressWarnings("restriction")
 public final class TypeResolver {
-  private static boolean SUPPORTS_LAMBDAS;
-  private static Method GET_CONSTANT_POOL;
-
-  private TypeResolver() {
-  }
-
-  /** An unknown type. */
-  public static final class Unknown {
-    private Unknown() {
-    }
-  }
-
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
-  private static boolean cacheEnabled = true;
+  private static boolean CACHE_ENABLED = true;
+  private static boolean SUPPORTS_LAMBDAS;
+  private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-
+  
   static {
-    String javaVersion = System.getProperty("java.version").substring(0, 3);
-    SUPPORTS_LAMBDAS = Double.valueOf(javaVersion) >= 1.8;
-
+    SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
       for (Method method : Object.class.getDeclaredMethods())
         OBJECT_METHODS.put(method.getName(), method);
@@ -76,12 +64,21 @@ public final class TypeResolver {
         SUPPORTS_LAMBDAS = false;
     }
   }
+  
+  /** An unknown type. */
+  public static final class Unknown {
+    private Unknown() {
+    }
+  }
+  
+  private TypeResolver() {
+  }
 
   /**
    * Enables the internal caching of resolved TypeVariables.
    */
   public static void enableCache() {
-    cacheEnabled = true;
+    CACHE_ENABLED = true;
   }
 
   /**
@@ -89,7 +86,7 @@ public final class TypeResolver {
    */
   public static void disableCache() {
     typeVariableCache.clear();
-    cacheEnabled = false;
+    CACHE_ENABLED = false;
   }
 
   /**
@@ -287,7 +284,7 @@ public final class TypeResolver {
         type = type.getEnclosingClass();
       }
 
-      if (cacheEnabled)
+      if (CACHE_ENABLED)
         typeVariableCache.put(targetType, new WeakReference<Map<TypeVariable<?>, Type>>(map));
     }
 
