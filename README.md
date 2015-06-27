@@ -1,4 +1,6 @@
-# TypeTools [![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools) 
+# TypeTools
+[![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools) 
 
 A simple, zero-dependency set of tools for working with Java types.
 
@@ -64,7 +66,7 @@ Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator.class, comparator.
 assert typeArg == String.class;
 ```
 
-We can also resolve the raw class for any generic type, given a sub-type:
+We can also resolve the raw class for type parameters on fields and methods:
 
 ```java
 class Entity<ID extends Serializable> {
