@@ -8,18 +8,6 @@ A simple, zero-dependency set of tools for working with Java types.
 
 One of the sore points with Java involves working with type information. In particular, Java's generics do not provide a way to resolve the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface, lambda expression or method.
 
-## Setup
-
-Add TypeTools as a Maven dependency:
-
-```xml
-<dependency>
-  <groupId>net.jodah</groupId>
-  <artifactId>typetools</artifactId>
-  <version>0.4.1</version>
-</dependency>
-```
-
 ## Usage
 
 The [TypeResolver](http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html) class provides the following methods:
