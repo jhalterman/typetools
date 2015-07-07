@@ -1,3 +1,9 @@
+# 0.4.2
+
+### Bug Fixes
+
+* Added stricter checking for lambda/1.8 support.
+
 # 0.4.1
 
 ### New Features
