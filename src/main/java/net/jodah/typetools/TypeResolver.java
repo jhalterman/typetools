@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import sun.reflect.ConstantPool;
 
@@ -43,6 +44,7 @@ public final class TypeResolver {
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
+  private static final AtomicReference<Integer> methodRefOffsetCache = new AtomicReference<Integer>();
   private static boolean CACHE_ENABLED = true;
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
@@ -86,6 +88,7 @@ public final class TypeResolver {
    */
   public static void disableCache() {
     typeVariableCache.clear();
+    methodRefOffsetCache.set(null);
     CACHE_ENABLED = false;
   }
 
@@ -312,11 +315,17 @@ public final class TypeResolver {
 
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
-            String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 2);
+            String[] methodRefInfo = constantPool.getMemberRefInfoAt(
+              constantPool.getSize() - resolveMethodRefOffset(constantPool, lambdaType));
 
             // Skip auto boxing methods
-            if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22)
-              methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 8);
+            if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
+              try {
+                methodRefInfo = constantPool.getMemberRefInfoAt(
+                  constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool, lambdaType));
+              } catch (MethodRefOffsetResolutionFailed ignore) {
+              }
+            }
 
             if (returnTypeVar instanceof TypeVariable) {
               Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
@@ -345,6 +354,58 @@ public final class TypeResolver {
       } catch (Exception ignore) {
       }
     }
+  }
+
+  private static final class MethodRefOffsetResolutionFailed extends RuntimeException {}
+
+  /**
+   * Resolves method ref offset.
+   */
+  private static int resolveMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+    Integer offset = methodRefOffsetCache.get();
+
+    if (offset == null) {
+      int constantPoolSize = constantPool.getSize();
+
+      for (int i = 0; i < constantPoolSize; i++) {
+        try {
+          constantPool.getMemberRefInfoAt(constantPoolSize - i);
+          offset = i;
+          break;
+        } catch (IllegalArgumentException ignore) {
+        }
+      }
+
+      if (offset == null)
+        offset = -1;
+    }
+
+    if (CACHE_ENABLED)
+      methodRefOffsetCache.compareAndSet(null, offset);
+
+    if (offset >= 0)
+      return offset;
+    else
+      throw new MethodRefOffsetResolutionFailed();
+  }
+
+  /**
+   * Resolves method ref offset of method reference lambda type having autoboxed return type.
+   * We can't cache the result value because results are different depending on given {@code lambdaType}.
+   */
+  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+    int constantPoolSize = constantPool.getSize();
+
+    for (int i = resolveMethodRefOffset(constantPool, lambdaType) + 1; i < constantPoolSize; i++) {
+      try {
+        // ignore constructor
+        if (!constantPool.getMemberRefInfoAt(constantPoolSize - i)[1].equals("<init>"))
+          return i;
+      } catch (IllegalArgumentException ignore) {
+      }
+    }
+
+    throw new MethodRefOffsetResolutionFailed();
   }
 
   /**
