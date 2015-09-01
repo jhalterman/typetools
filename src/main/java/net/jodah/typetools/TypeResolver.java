@@ -35,7 +35,7 @@ import sun.reflect.ConstantPool;
 /**
  * Enhanced type resolution utilities. Originally based on
  * org.springframework.core.GenericTypeResolver.
- *
+ * 
  * @author Jonathan Halterman
  */
 @SuppressWarnings("restriction")
@@ -48,7 +48,7 @@ public final class TypeResolver {
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static int OFFSET;
-
+  
   static {
     SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
@@ -67,13 +67,13 @@ public final class TypeResolver {
       OFFSET = (System.getProperty("java.version").compareTo("1.8.0_60") < 0) ? 2 : 3;
     }
   }
-
+  
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
     }
   }
-
+  
   private TypeResolver() {
   }
 
@@ -96,7 +96,7 @@ public final class TypeResolver {
    * Returns the raw class representing the argument for the {@code type} using type variable
    * information from the {@code subType}. If no arguments can be resolved then
    * {@code Unknown.class} is returned.
-   *
+   * 
    * @param type to resolve argument for
    * @param subType to extract type variable information from
    * @return argument for {@code type} else {@link Unknown.class} if no type arguments are declared
@@ -112,7 +112,7 @@ public final class TypeResolver {
    * information from the {@code subType}. If {@code genericType} is an instance of class, then
    * {@code genericType} is returned. If no arguments can be resolved then {@code Unknown.class} is
    * returned.
-   *
+   * 
    * @param genericType to resolve argument for
    * @param subType to extract type variable information from
    * @return argument for {@code genericType} else {@link Unknown.class} if no type arguments are
@@ -137,7 +137,7 @@ public final class TypeResolver {
    * information from the {@code subType}. Arguments for {@code type} that cannot be resolved are
    * returned as {@code Unknown.class}. If no arguments can be resolved then {@code null} is
    * returned.
-   *
+   * 
    * @param type to resolve arguments for
    * @param subType to extract type variable information from
    * @return array of raw classes representing arguments for the {@code type} else {@code null} if
@@ -152,7 +152,7 @@ public final class TypeResolver {
    * variable information from the {@code subType}. Arguments for {@code genericType} that cannot be
    * resolved are returned as {@code Unknown.class}. If no arguments can be resolved then
    * {@code null} is returned.
-   *
+   * 
    * @param genericType to resolve arguments for
    * @param subType to extract type variable information from
    * @return array of raw classes representing arguments for the {@code genericType} else
@@ -193,7 +193,7 @@ public final class TypeResolver {
   /**
    * Returns the generic {@code type} using type variable information from the {@code subType} else
    * {@code null} if the generic type cannot be resolved.
-   *
+   * 
    * @param type to resolve generic type for
    * @param subType to extract type variable information from
    * @return generic {@code type} else {@code null} if it cannot be resolved
@@ -227,7 +227,7 @@ public final class TypeResolver {
   /**
    * Resolves the raw class for the {@code genericType}, using the type variable information from
    * the {@code subType} else {@link Unknown} if the raw class cannot be resolved.
-   *
+   * 
    * @param type to resolve raw class for
    * @param subType to extract type variable information from
    * @return raw class for the {@code genericType} else {@link Unknown} if it cannot be resolved
