@@ -18,6 +18,7 @@ package net.jodah.typetools;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -29,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.stream.Collectors;
 
 import sun.reflect.ConstantPool;
 
@@ -48,7 +50,8 @@ public final class TypeResolver {
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static int METHOD_REF_OFFSET;
-  
+  private static int SKIP_AUTOBOXING_METHOD_REF_OFFSET;
+
   static {
     SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
@@ -64,10 +67,12 @@ public final class TypeResolver {
       if (GET_CONSTANT_POOL == null)
         SUPPORTS_LAMBDAS = false;
 
-      if (SUPPORTS_LAMBDAS)
+      if (SUPPORTS_LAMBDAS) {
         METHOD_REF_OFFSET = calcMethodRefOffset();
+        SKIP_AUTOBOXING_METHOD_REF_OFFSET = calcMethodRefOffsetOfAutoboxingMethodRefLambda();
+      }
 
-      if (METHOD_REF_OFFSET < 0)
+      if (METHOD_REF_OFFSET < 0 || SKIP_AUTOBOXING_METHOD_REF_OFFSET < 0)
         SUPPORTS_LAMBDAS = false;
     }
   }
@@ -98,6 +103,32 @@ public final class TypeResolver {
     return -1;
   }
 
+  private static int calcMethodRefOffsetOfAutoboxingMethodRefLambda() {
+    AutoboxingMethodRefLambdaTypeSample lambdaTypeSample;
+    ConstantPool constantPool;
+
+    try {
+      lambdaTypeSample = AutoboxingMethodRefLambdaTypeSample.get();
+      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaTypeSample.lambdaType);
+    }catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+
+    int constantPoolSize = constantPool.getSize();
+    String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPoolSize - METHOD_REF_OFFSET);
+    if (methodRefInfo[1].equals("valueOf") && constantPoolSize > 22) {
+      for (int i = METHOD_REF_OFFSET + 1; i < constantPoolSize; i++) {
+        try {
+          constantPool.getMemberRefInfoAt(constantPoolSize - i);
+          return i + 2; // '2' is MAGIC NUMBER
+        } catch (IllegalArgumentException e) {
+        }
+      }
+    }
+
+    return -1;
+  }
+
   private static class LambdaTypeSample {
     final Class<?> lambdaType;
     final Class<?> returnType;
@@ -113,6 +144,30 @@ public final class TypeResolver {
       castingArray.setAccessible(true);
 
       return new LambdaTypeSample(castingArray.invoke(null).getClass(), Object[].class);
+    }
+  }
+
+  private static class AutoboxingMethodRefLambdaTypeSample {
+    final Class<?> lambdaType;
+
+    private AutoboxingMethodRefLambdaTypeSample(Class<?> lambdaType) {
+      this.lambdaType = lambdaType;
+    }
+
+    static AutoboxingMethodRefLambdaTypeSample get() throws ReflectiveOperationException {
+      Object collector =  Collectors.counting();
+      Field accumField = collector.getClass().getDeclaredField("accumulator");
+      accumField.setAccessible(true);
+      Object accum = accumField.get(collector);
+
+      // sythetic field 'arg$1'
+      Field methodRefLambdaField = accum.getClass().getDeclaredFields()[0];
+      methodRefLambdaField.setAccessible(true);
+
+      // instance of 'Long::sum' instantiated in Collectors#counting
+      Object methodRefLambda = methodRefLambdaField.get(accum);
+
+      return new AutoboxingMethodRefLambdaTypeSample(methodRefLambda.getClass());
     }
   }
 
@@ -367,7 +422,10 @@ public final class TypeResolver {
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22)
-              methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - 8);
+              try {
+                methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - SKIP_AUTOBOXING_METHOD_REF_OFFSET);
+              } catch (IllegalArgumentException ignore) {
+              }
 
             if (returnTypeVar instanceof TypeVariable) {
               Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
