@@ -160,7 +160,7 @@ public final class TypeResolver {
       accumField.setAccessible(true);
       Object accum = accumField.get(collector);
 
-      // sythetic field 'arg$1'
+      // synthetic field 'arg$1'
       Field methodRefLambdaField = accum.getClass().getDeclaredFields()[0];
       methodRefLambdaField.setAccessible(true);
 
