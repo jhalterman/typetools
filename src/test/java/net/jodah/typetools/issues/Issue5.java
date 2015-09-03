@@ -1,4 +1,4 @@
-package net.jodah.typetools.bugs;
+package net.jodah.typetools.issues;
 
 import static org.testng.Assert.assertEquals;
 
