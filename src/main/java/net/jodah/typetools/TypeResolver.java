@@ -47,7 +47,7 @@ public final class TypeResolver {
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static int OFFSET;
+  private static int METHOD_REF_OFFSET;
   
   static {
     SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
@@ -64,10 +64,47 @@ public final class TypeResolver {
       if (GET_CONSTANT_POOL == null)
         SUPPORTS_LAMBDAS = false;
 
-      OFFSET = (System.getProperty("java.version").compareTo("1.8.0_60") < 0) ? 2 : 3;
+      if (SUPPORTS_LAMBDAS)
+        METHOD_REF_OFFSET = calcMethodRefOffset();
+
+      if (METHOD_REF_OFFSET < 0)
+        SUPPORTS_LAMBDAS = false;
     }
   }
-  
+
+  private static int calcMethodRefOffset() {
+    Class <?> lambdaTypeSample;
+    ConstantPool constantPool;
+
+    try {
+      lambdaTypeSample = getLambdaTypeSample();
+      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaTypeSample);
+    }catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    }
+
+    for (int i = 1; i < constantPool.getSize(); i++) {
+      String[] methodRefInfo;
+      try {
+        methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - i);
+      } catch (IllegalArgumentException e) {
+        continue;
+      }
+
+      if (TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaTypeSample.getClassLoader()) == Object[].class)
+        return i;
+    }
+
+    return -1;
+  }
+
+  private static Class<?> getLambdaTypeSample() throws ReflectiveOperationException {
+    Class<?> sliceOpsCls = Class.forName("java.util.stream.SliceOps");
+    Method castingArray = sliceOpsCls.getDeclaredMethod("castingArray");
+    castingArray.setAccessible(true);
+    return castingArray.invoke(null).getClass();
+  }
+
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
@@ -315,7 +352,7 @@ public final class TypeResolver {
 
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
-            String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - OFFSET);
+            String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - METHOD_REF_OFFSET);
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22)
