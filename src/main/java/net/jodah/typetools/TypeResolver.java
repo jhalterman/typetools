@@ -73,36 +73,47 @@ public final class TypeResolver {
   }
 
   private static int calcMethodRefOffset() {
-    Class <?> lambdaTypeSample;
+    LambdaTypeSample lambdaTypeSample;
     ConstantPool constantPool;
 
     try {
-      lambdaTypeSample = getLambdaTypeSample();
-      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaTypeSample);
+      lambdaTypeSample = LambdaTypeSample.get();
+      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaTypeSample.lambdaType);
     }catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
 
-    for (int i = 1; i < constantPool.getSize(); i++) {
-      String[] methodRefInfo;
+    int constantPoolSize = constantPool.getSize();
+    for (int i = 1; i < constantPoolSize; i++) {
       try {
-        methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - i);
-      } catch (IllegalArgumentException e) {
-        continue;
-      }
+        String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPoolSize - i);
 
-      if (TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaTypeSample.getClassLoader()) == Object[].class)
-        return i;
+        if (TypeDescriptor.getReturnType(methodRefInfo[2]).getType(
+            lambdaTypeSample.lambdaType.getClassLoader()) == lambdaTypeSample.returnType)
+          return i;
+      } catch (IllegalArgumentException e) {
+      }
     }
 
     return -1;
   }
 
-  private static Class<?> getLambdaTypeSample() throws ReflectiveOperationException {
-    Class<?> sliceOpsCls = Class.forName("java.util.stream.SliceOps");
-    Method castingArray = sliceOpsCls.getDeclaredMethod("castingArray");
-    castingArray.setAccessible(true);
-    return castingArray.invoke(null).getClass();
+  private static class LambdaTypeSample {
+    final Class<?> lambdaType;
+    final Class<?> returnType;
+
+    private LambdaTypeSample(Class<?> lambdaType, Class<?> returnType) {
+      this.lambdaType = lambdaType;
+      this.returnType = returnType;
+    }
+
+    static LambdaTypeSample get() throws ReflectiveOperationException {
+      Class<?> sliceOpsCls = Class.forName("java.util.stream.SliceOps");
+      Method castingArray = sliceOpsCls.getDeclaredMethod("castingArray");
+      castingArray.setAccessible(true);
+
+      return new LambdaTypeSample(castingArray.invoke(null).getClass(), Object[].class);
+    }
   }
 
   /** An unknown type. */
