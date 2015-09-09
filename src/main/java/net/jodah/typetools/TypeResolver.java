@@ -49,7 +49,7 @@ public final class TypeResolver {
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-
+  
   static {
     SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
@@ -66,7 +66,7 @@ public final class TypeResolver {
         SUPPORTS_LAMBDAS = false;
     }
   }
-
+  
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
@@ -88,7 +88,7 @@ public final class TypeResolver {
    */
   public static void disableCache() {
     typeVariableCache.clear();
-  	methodRefOffsetCache.set(null);
+    methodRefOffsetCache.set(null);
     CACHE_ENABLED = false;
   }
 
@@ -324,7 +324,6 @@ public final class TypeResolver {
                 methodRefInfo = constantPool.getMemberRefInfoAt(
                   constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool, lambdaType));
               } catch (MethodRefOffsetResolutionFailed ignore) {
-              } catch (IllegalArgumentException ignore) {
               }
             }
 
