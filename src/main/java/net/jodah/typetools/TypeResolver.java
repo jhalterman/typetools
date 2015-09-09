@@ -380,7 +380,7 @@ public final class TypeResolver {
         offset = -1;
     }
 
-    if (CACHE_ENABLED && methodRefOffsetCache == null)
+    if (CACHE_ENABLED)
       methodRefOffsetCache.compareAndSet(null, offset);
 
     if (offset >= 0)
