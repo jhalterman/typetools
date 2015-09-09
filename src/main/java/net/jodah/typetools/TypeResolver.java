@@ -315,7 +315,7 @@ public final class TypeResolver {
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
 
-          	if (methodRefOffsetCache < 0) {
+            if (methodRefOffsetCache < 0) {
               methodRefOffsetCache = resolveMethodRefOffset(constantPool, lambdaType);
 
               // resolution failed
@@ -323,7 +323,7 @@ public final class TypeResolver {
                 return;
             }
 
-          	String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - methodRefOffsetCache);
+            String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - methodRefOffsetCache);
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
