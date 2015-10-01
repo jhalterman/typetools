@@ -1,3 +1,9 @@
+# 0.4.3
+
+### Bug Fixes
+
+* Detect constant pool offsets when resolving lambdas for 1.8.0_60+ JREs.
+
 # 0.4.2
 
 ### Bug Fixes

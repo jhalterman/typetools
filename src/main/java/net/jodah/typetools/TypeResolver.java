@@ -34,8 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import sun.reflect.ConstantPool;
 
 /**
- * Enhanced type resolution utilities. Originally based on
- * org.springframework.core.GenericTypeResolver.
+ * Enhanced type resolution utilities. Originally based on org.springframework.core.GenericTypeResolver.
  * 
  * @author Jonathan Halterman
  */
@@ -44,12 +43,12 @@ public final class TypeResolver {
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
-  private static final AtomicReference<Integer> methodRefOffsetCache = new AtomicReference<Integer>();
+  private static volatile int METHOD_REF_OFFSET = -1;
   private static boolean CACHE_ENABLED = true;
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  
+
   static {
     SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
@@ -66,13 +65,13 @@ public final class TypeResolver {
         SUPPORTS_LAMBDAS = false;
     }
   }
-  
+
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
     }
   }
-  
+
   private TypeResolver() {
   }
 
@@ -88,37 +87,31 @@ public final class TypeResolver {
    */
   public static void disableCache() {
     typeVariableCache.clear();
-    methodRefOffsetCache.set(null);
     CACHE_ENABLED = false;
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code type} using type variable
-   * information from the {@code subType}. If no arguments can be resolved then
-   * {@code Unknown.class} is returned.
+   * Returns the raw class representing the argument for the {@code type} using type variable information from the
+   * {@code subType}. If no arguments can be resolved then {@code Unknown.class} is returned.
    * 
    * @param type to resolve argument for
    * @param subType to extract type variable information from
    * @return argument for {@code type} else {@link Unknown.class} if no type arguments are declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the
-   *           {@code type}
+   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code type}
    */
   public static <T, S extends T> Class<?> resolveRawArgument(Class<T> type, Class<S> subType) {
     return resolveRawArgument(resolveGenericType(type, subType), subType);
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code genericType} using type variable
-   * information from the {@code subType}. If {@code genericType} is an instance of class, then
-   * {@code genericType} is returned. If no arguments can be resolved then {@code Unknown.class} is
-   * returned.
+   * Returns the raw class representing the argument for the {@code genericType} using type variable information from
+   * the {@code subType}. If {@code genericType} is an instance of class, then {@code genericType} is returned. If no
+   * arguments can be resolved then {@code Unknown.class} is returned.
    * 
    * @param genericType to resolve argument for
    * @param subType to extract type variable information from
-   * @return argument for {@code genericType} else {@link Unknown.class} if no type arguments are
-   *         declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the
-   *           {@code genericType}
+   * @return argument for {@code genericType} else {@link Unknown.class} if no type arguments are declared
+   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code genericType}
    */
   public static Class<?> resolveRawArgument(Type genericType, Class<?> subType) {
     Class<?>[] arguments = resolveRawArguments(genericType, subType);
@@ -133,30 +126,28 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code type} using type variable
-   * information from the {@code subType}. Arguments for {@code type} that cannot be resolved are
-   * returned as {@code Unknown.class}. If no arguments can be resolved then {@code null} is
-   * returned.
+   * Returns an array of raw classes representing arguments for the {@code type} using type variable information from
+   * the {@code subType}. Arguments for {@code type} that cannot be resolved are returned as {@code Unknown.class}. If
+   * no arguments can be resolved then {@code null} is returned.
    * 
    * @param type to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code type} else {@code null} if
-   *         no type arguments are declared
+   * @return array of raw classes representing arguments for the {@code type} else {@code null} if no type arguments are
+   *         declared
    */
   public static <T, S extends T> Class<?>[] resolveRawArguments(Class<T> type, Class<S> subType) {
     return resolveRawArguments(resolveGenericType(type, subType), subType);
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code genericType} using type
-   * variable information from the {@code subType}. Arguments for {@code genericType} that cannot be
-   * resolved are returned as {@code Unknown.class}. If no arguments can be resolved then
-   * {@code null} is returned.
+   * Returns an array of raw classes representing arguments for the {@code genericType} using type variable information
+   * from the {@code subType}. Arguments for {@code genericType} that cannot be resolved are returned as
+   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is returned.
    * 
    * @param genericType to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code genericType} else
-   *         {@code null} if no type arguments are declared
+   * @return array of raw classes representing arguments for the {@code genericType} else {@code null} if no type
+   *         arguments are declared
    */
   public static Class<?>[] resolveRawArguments(Type genericType, Class<?> subType) {
     Class<?>[] result = null;
@@ -191,8 +182,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the generic {@code type} using type variable information from the {@code subType} else
-   * {@code null} if the generic type cannot be resolved.
+   * Returns the generic {@code type} using type variable information from the {@code subType} else {@code null} if the
+   * generic type cannot be resolved.
    * 
    * @param type to resolve generic type for
    * @param subType to extract type variable information from
@@ -225,8 +216,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the raw class for the {@code genericType}, using the type variable information from
-   * the {@code subType} else {@link Unknown} if the raw class cannot be resolved.
+   * Resolves the raw class for the {@code genericType}, using the type variable information from the {@code subType}
+   * else {@link Unknown} if the raw class cannot be resolved.
    * 
    * @param type to resolve raw class for
    * @param subType to extract type variable information from
@@ -315,14 +306,14 @@ public final class TypeResolver {
 
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
-            String[] methodRefInfo = constantPool.getMemberRefInfoAt(
-              constantPool.getSize() - resolveMethodRefOffset(constantPool, lambdaType));
+            String[] methodRefInfo = constantPool
+                .getMemberRefInfoAt(constantPool.getSize() - resolveMethodRefOffset(constantPool, lambdaType));
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
               try {
                 methodRefInfo = constantPool.getMemberRefInfoAt(
-                  constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool, lambdaType));
+                    constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool, lambdaType));
               } catch (MethodRefOffsetResolutionFailed ignore) {
               }
             }
@@ -356,56 +347,7 @@ public final class TypeResolver {
     }
   }
 
-  private static final class MethodRefOffsetResolutionFailed extends RuntimeException {}
-
-  /**
-   * Resolves method ref offset.
-   */
-  private static int resolveMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
-    Integer offset = methodRefOffsetCache.get();
-
-    if (offset == null) {
-      int constantPoolSize = constantPool.getSize();
-
-      for (int i = 0; i < constantPoolSize; i++) {
-        try {
-          constantPool.getMemberRefInfoAt(constantPoolSize - i);
-          offset = i;
-          break;
-        } catch (IllegalArgumentException ignore) {
-        }
-      }
-
-      if (offset == null)
-        offset = -1;
-    }
-
-    if (CACHE_ENABLED)
-      methodRefOffsetCache.compareAndSet(null, offset);
-
-    if (offset >= 0)
-      return offset;
-    else
-      throw new MethodRefOffsetResolutionFailed();
-  }
-
-  /**
-   * Resolves method ref offset of method reference lambda type having autoboxed return type.
-   * We can't cache the result value because results are different depending on given {@code lambdaType}.
-   */
-  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
-    int constantPoolSize = constantPool.getSize();
-
-    for (int i = resolveMethodRefOffset(constantPool, lambdaType) + 1; i < constantPoolSize; i++) {
-      try {
-        // ignore constructor
-        if (!constantPool.getMemberRefInfoAt(constantPoolSize - i)[1].equals("<init>"))
-          return i;
-      } catch (IllegalArgumentException ignore) {
-      }
-    }
-
-    throw new MethodRefOffsetResolutionFailed();
+  private static final class MethodRefOffsetResolutionFailed extends RuntimeException {
   }
 
   /**
@@ -473,8 +415,7 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the first bound for the {@code typeVariable}, returning {@code Unknown.class} if none
-   * can be resolved.
+   * Resolves the first bound for the {@code typeVariable}, returning {@code Unknown.class} if none can be resolved.
    */
   public static Type resolveBound(TypeVariable<?> typeVariable) {
     Type[] bounds = typeVariable.getBounds();
@@ -486,5 +427,52 @@ public final class TypeResolver {
       bound = resolveBound((TypeVariable<?>) bound);
 
     return bound == Object.class ? Unknown.class : bound;
+  }
+  
+  /**
+   * Resolves method ref offset.
+   */
+  private static int resolveMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+    int offset = METHOD_REF_OFFSET;
+
+    if (offset == -1) {
+      int constantPoolSize = constantPool.getSize();
+
+      for (int i = 0; i < constantPoolSize; i++) {
+        try {
+          constantPool.getMemberRefInfoAt(constantPoolSize - i);
+          offset = i;
+          break;
+        } catch (IllegalArgumentException ignore) {
+        }
+      }
+
+      if (CACHE_ENABLED)
+        METHOD_REF_OFFSET = offset;  
+    }
+
+    if (offset >= 0)
+      return offset;
+    else
+      throw new MethodRefOffsetResolutionFailed();
+  }
+
+  /**
+   * Resolves method ref offset of method reference lambda type having autoboxed return type. We can't cache the result
+   * value because results are different depending on given {@code lambdaType}.
+   */
+  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+    int constantPoolSize = constantPool.getSize();
+
+    for (int i = resolveMethodRefOffset(constantPool, lambdaType) + 1; i < constantPoolSize; i++) {
+      try {
+        // ignore constructor
+        if (!constantPool.getMemberRefInfoAt(constantPoolSize - i)[1].equals("<init>"))
+          return i;
+      } catch (IllegalArgumentException ignore) {
+      }
+    }
+
+    throw new MethodRefOffsetResolutionFailed();
   }
 }
