@@ -1,3 +1,7 @@
+# 0.4.4
+
+* Fixed issue #11 - Disabling the cache breaks type resolution.
+
 # 0.4.3
 
 ### Bug Fixes

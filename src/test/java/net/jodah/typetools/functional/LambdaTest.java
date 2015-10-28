@@ -1,4 +1,4 @@
-package net.jodah.typetools;
+package net.jodah.typetools.functional;
 
 import static org.testng.Assert.assertEquals;
 
@@ -12,9 +12,12 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import net.jodah.typetools.TypeResolver.Unknown;
-
+import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
+
+import net.jodah.typetools.AbstractTypeResolverTest;
+import net.jodah.typetools.TypeResolver;
+import net.jodah.typetools.TypeResolver.Unknown;
 
 /**
  * Tests the resolution of type arguments defined on lambda expressions.
@@ -22,7 +25,12 @@ import org.testng.annotations.Test;
  * @author Jonathan Halterman
  */
 @Test
-public class LambdaTest {
+public class LambdaTest extends AbstractTypeResolverTest {
+  @Factory(dataProvider = "cacheDataProvider")
+  public LambdaTest(boolean cacheEnabled) {
+    super(cacheEnabled);
+  }
+
   interface FnSubclass<T, V> extends Function<T, V> {
   }
 
@@ -79,8 +87,7 @@ public class LambdaTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from lambda expressions for simple functional
-   * interfaces.
+   * Asserts that arguments can be resolved from lambda expressions for simple functional interfaces.
    */
   public void shouldResolveArguments() {
     Predicate<String> predicate = str -> true;
@@ -90,8 +97,8 @@ public class LambdaTest {
     };
 
     assertEquals(TypeResolver.resolveRawArgument(Predicate.class, predicate.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
     assertEquals(TypeResolver.resolveRawArgument(Supplier.class, supplier.getClass()), String.class);
     assertEquals(TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass()), String.class);
   }
@@ -108,38 +115,37 @@ public class LambdaTest {
 
     assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
     assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p2.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArguments(BiPredicate.class, p3.getClass()), new Class<?>[] { Baz.class,
-        String.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiPredicate.class, p3.getClass()),
+        new Class<?>[] { Baz.class, String.class });
     assertEquals(TypeResolver.resolveRawArgument(Comparator.class, c.getClass()), String.class);
   }
 
   /**
-   * Asserts that arguments can be resolved for interfaces that contain additional Object.class
-   * overriding methods.
+   * Asserts that arguments can be resolved for interfaces that contain additional Object.class overriding methods.
    */
   public void shouldResolveArgumentsFromNonSamMethodRef() throws Throwable {
     I1<String, Integer> fn = String::compareToIgnoreCase;
-    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
   }
 
   /**
-   * Asserts that method references with primitive type arguments that are auto boxed to primitive
-   * wrappers are properly handled.
+   * Asserts that method references with primitive type arguments that are auto boxed to primitive wrappers are properly
+   * handled.
    * 
-   * Note: disabled since method signature exposed via constant pool contains convert(String,
-   * Object). Subsequent bytecode contains convert(String, String). May need ASM to read.
+   * Note: disabled since method signature exposed via constant pool contains convert(String, Object). Subsequent
+   * bytecode contains convert(String, String). May need ASM to read.
    */
   @Test(enabled = false)
   public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
     I1<String, Integer> fn = Baz::convert;
-    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
   }
 
   /**
-   * Asserts that arguments can be resolved from lambda expressions for simple functional interfaces
-   * that contain multiple type parameters.
+   * Asserts that arguments can be resolved from lambda expressions for simple functional interfaces that contain
+   * multiple type parameters.
    */
   public void shouldResolveMultiArguments() {
     BiFunction<String, Long, Integer> biFn = (str1, str2) -> Integer.valueOf(str1 + str2);
@@ -151,21 +157,21 @@ public class LambdaTest {
     Bar<String, Long, Integer, Double> bar = (a, b, c) -> {
     };
 
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, biFn.getClass()), new Class<?>[] { String.class,
-        Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer1.getClass()), new Class<?>[] {
-        String.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer2.getClass()), new Class<?>[] {
-        String.class, Long.class });
-    assertEquals(TypeResolver.resolveRawArguments(Foo.class, foo.getClass()), new Class<?>[] { String.class,
-        Long.class, Integer.class, Double.class });
-    assertEquals(TypeResolver.resolveRawArguments(Bar.class, bar.getClass()), new Class<?>[] { String.class,
-        Long.class, Integer.class, Unknown.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, biFn.getClass()),
+        new Class<?>[] { String.class, Long.class, Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer1.getClass()),
+        new Class<?>[] { String.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer2.getClass()),
+        new Class<?>[] { String.class, Long.class });
+    assertEquals(TypeResolver.resolveRawArguments(Foo.class, foo.getClass()),
+        new Class<?>[] { String.class, Long.class, Integer.class, Double.class });
+    assertEquals(TypeResolver.resolveRawArguments(Bar.class, bar.getClass()),
+        new Class<?>[] { String.class, Long.class, Integer.class, Unknown.class });
   }
 
   /**
-   * Asserts that arguments can be resolved from method references for simple functional interfaces
-   * that contain multiple type parameters.
+   * Asserts that arguments can be resolved from method references for simple functional interfaces that contain
+   * multiple type parameters.
    */
   public void shouldResolveMultiArgumentsForMethodRefs() {
     Baz baz = new Baz();
@@ -173,51 +179,49 @@ public class LambdaTest {
     BiFunction<String, Long, Integer> f2 = Baz::applyStatic;
     Function3<Baz, String, Long, Integer> f3 = Baz::apply;
 
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f1.getClass()), new Class<?>[] { String.class,
-        Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f2.getClass()), new Class<?>[] { String.class,
-        Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function3.class, f3.getClass()), new Class<?>[] { Baz.class,
-        String.class, Long.class, Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f1.getClass()),
+        new Class<?>[] { String.class, Long.class, Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f2.getClass()),
+        new Class<?>[] { String.class, Long.class, Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function3.class, f3.getClass()),
+        new Class<?>[] { Baz.class, String.class, Long.class, Integer.class });
   }
 
   /**
-   * Asserts that arguments can be resolved from a lambda expression when declared on a subclass of
-   * some type.
+   * Asserts that arguments can be resolved from a lambda expression when declared on a subclass of some type.
    */
   public void shouldResolveSubclassArguments() {
     FnSubclass<String, Integer> fn = str -> Integer.valueOf(str);
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
   }
 
   /**
-   * Asserts that arguments can be resolved from a method reference when declared on a subclass of
-   * some type.
+   * Asserts that arguments can be resolved from a method reference when declared on a subclass of some type.
    */
   public void shouldResolveSubclassArgumentsForMethodRefs() {
     FnSubclass<String, Integer> fn = Integer::valueOf;
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
   }
 
   public void shouldResolveTransposedSubclassArguments() {
     SelectingFn<Integer, Long, String> fn = (String str) -> Integer.valueOf(str);
-    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn.getClass()), new Class<?>[] { Integer.class,
-        Unknown.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn.getClass()), new Class<?>[] { Integer.class,
-        String.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn.getClass()),
+        new Class<?>[] { Integer.class, Unknown.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn.getClass()),
+        new Class<?>[] { Integer.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
 
     StrToInt fn1 = (String str) -> Integer.valueOf(str);
     assertEquals(TypeResolver.resolveRawArguments(StrToInt.class, fn1.getClass()), new Class<?>[] {});
-    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn1.getClass()), new Class<?>[] { Integer.class,
-        Long.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn1.getClass()), new Class<?>[] { Integer.class,
-        String.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn1.getClass()), new Class<?>[] { String.class,
-        Integer.class });
+    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn1.getClass()),
+        new Class<?>[] { Integer.class, Long.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn1.getClass()),
+        new Class<?>[] { Integer.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn1.getClass()),
+        new Class<?>[] { String.class, Integer.class });
   }
 
   /**

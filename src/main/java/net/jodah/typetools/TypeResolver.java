@@ -43,7 +43,7 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile int METHOD_REF_OFFSET = -1;
-  private static boolean CACHE_ENABLED = true;
+  private static volatile boolean CACHE_ENABLED = true;
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
@@ -150,15 +150,16 @@ public final class TypeResolver {
    */
   public static Class<?>[] resolveRawArguments(Type genericType, Class<?> subType) {
     Class<?>[] result = null;
+    Class<?> functionalInterface = null;
 
     // Handle lambdas
     if (SUPPORTS_LAMBDAS && subType.isSynthetic()) {
-      Class<?> functionalInterface = genericType instanceof ParameterizedType
+      Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
               : genericType instanceof Class ? (Class<?>) genericType : null;
-      if (functionalInterface != null && functionalInterface.isInterface())
-        getTypeVariableMap(subType, functionalInterface);
+      if (fi != null && fi.isInterface())
+        functionalInterface = fi;
     }
 
     if (genericType instanceof ParameterizedType) {
@@ -166,15 +167,15 @@ public final class TypeResolver {
       Type[] arguments = paramType.getActualTypeArguments();
       result = new Class[arguments.length];
       for (int i = 0; i < arguments.length; i++)
-        result[i] = resolveRawClass(arguments[i], subType);
+        result[i] = resolveRawClass(arguments[i], subType, functionalInterface);
     } else if (genericType instanceof TypeVariable) {
       result = new Class[1];
-      result[0] = resolveRawClass(genericType, subType);
+      result[0] = resolveRawClass(genericType, subType, functionalInterface);
     } else if (genericType instanceof Class) {
       TypeVariable<?>[] typeParams = ((Class<?>) genericType).getTypeParameters();
       result = new Class[typeParams.length];
       for (int i = 0; i < typeParams.length; i++)
-        result[i] = resolveRawClass(typeParams[i], subType);
+        result[i] = resolveRawClass(typeParams[i], subType, functionalInterface);
     }
 
     return result;
@@ -223,18 +224,23 @@ public final class TypeResolver {
    * @return raw class for the {@code genericType} else {@link Unknown} if it cannot be resolved
    */
   public static Class<?> resolveRawClass(Type genericType, Class<?> subType) {
+    return resolveRawClass(genericType, subType, null);
+  }
+
+  private static Class<?> resolveRawClass(Type genericType, Class<?> subType, Class<?> functionalInterface) {
     if (genericType instanceof Class) {
       return (Class<?>) genericType;
     } else if (genericType instanceof ParameterizedType) {
-      return resolveRawClass(((ParameterizedType) genericType).getRawType(), subType);
+      return resolveRawClass(((ParameterizedType) genericType).getRawType(), subType, functionalInterface);
     } else if (genericType instanceof GenericArrayType) {
       GenericArrayType arrayType = (GenericArrayType) genericType;
-      Class<?> compoment = resolveRawClass(arrayType.getGenericComponentType(), subType);
+      Class<?> compoment = resolveRawClass(arrayType.getGenericComponentType(), subType, functionalInterface);
       return Array.newInstance(compoment, 0).getClass();
     } else if (genericType instanceof TypeVariable) {
       TypeVariable<?> variable = (TypeVariable<?>) genericType;
-      genericType = getTypeVariableMap(subType, null).get(variable);
-      genericType = genericType == null ? resolveBound(variable) : resolveRawClass(genericType, subType);
+      genericType = getTypeVariableMap(subType, functionalInterface).get(variable);
+      genericType = genericType == null ? resolveBound(variable)
+          : resolveRawClass(genericType, subType, functionalInterface);
     }
 
     return genericType instanceof Class ? (Class<?>) genericType : Unknown.class;
@@ -427,7 +433,7 @@ public final class TypeResolver {
 
     return bound == Object.class ? Unknown.class : bound;
   }
-  
+
   /**
    * Resolves method ref offset.
    */
@@ -446,8 +452,7 @@ public final class TypeResolver {
         }
       }
 
-      if (CACHE_ENABLED)
-        METHOD_REF_OFFSET = offset;  
+      METHOD_REF_OFFSET = offset;
     }
 
     if (offset >= 0)

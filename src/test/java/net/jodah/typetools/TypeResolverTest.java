@@ -14,26 +14,30 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import net.jodah.typetools.TypeResolver;
-import net.jodah.typetools.TypeResolver.Unknown;
-
+import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
+
+import net.jodah.typetools.TypeResolver.Unknown;
 
 /**
  * @author Jonathan Halterman
  */
 @Test
 @SuppressWarnings("serial")
-public class TypeResolverTest {
+public class TypeResolverTest extends AbstractTypeResolverTest {
+  @Factory(dataProvider = "cacheDataProvider")
+  public TypeResolverTest(boolean cacheEnabled) {
+    super(cacheEnabled);
+  }
+
   static class RepoImplA<A1, A2 extends Map<?, ?>> extends RepoImplB<A2, ArrayList<?>> {
   }
 
-  static class RepoImplB<B1 extends Map<?, ?>, B2 extends List<?>> extends
-      RepoImplC<B2, HashSet<?>, B1> {
+  static class RepoImplB<B1 extends Map<?, ?>, B2 extends List<?>> extends RepoImplC<B2, HashSet<?>, B1> {
   }
 
-  static class RepoImplC<C1 extends List<?>, C2 extends Set<?>, C3 extends Map<?, ?>> implements
-      IRepo<C3, C1, Vector<?>, C2> {
+  static class RepoImplC<C1 extends List<?>, C2 extends Set<?>, C3 extends Map<?, ?>>
+      implements IRepo<C3, C1, Vector<?>, C2> {
   }
 
   interface IRepo<I1, I2, I3, I4> extends Serializable, IIRepo<I1, I3> {
@@ -74,9 +78,7 @@ public class TypeResolverTest {
 
   public void shouldResolveArgumentForGenericType() throws Exception {
     Method mutator = Entity.class.getDeclaredMethod("setId", List.class);
-    assertEquals(
-        TypeResolver.resolveRawArgument(mutator.getGenericParameterTypes()[0], SomeEntity.class),
-        Long.class);
+    assertEquals(TypeResolver.resolveRawArgument(mutator.getGenericParameterTypes()[0], SomeEntity.class), Long.class);
   }
 
   public void shouldResolveArgumentForList() {
