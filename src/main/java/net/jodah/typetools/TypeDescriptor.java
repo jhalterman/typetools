@@ -29,6 +29,10 @@
  */
 package net.jodah.typetools;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * A Java field or method type. This class can be used to make it easier to manipulate type and
  * method descriptors.
@@ -149,6 +153,32 @@ final class TypeDescriptor {
    */
   public static final TypeDescriptor VOID_TYPE = new TypeDescriptor(VOID, null, ('V' << 24) | (5 << 16) | (0 << 8) | 0,
     1);
+
+  private static final Map<Class<?>, Class<?>> PRIMITIVES_TO_WRAPPERS;
+
+  static {
+    Map<Class<?>, Class<?>> map = new HashMap<>();
+    map.put(boolean.class, Boolean.class);
+    map.put(byte.class, Byte.class);
+    map.put(char.class, Character.class);
+    map.put(double.class, Double.class);
+    map.put(float.class, Float.class);
+    map.put(int.class, Integer.class);
+    map.put(long.class, Long.class);
+    map.put(short.class, Short.class);
+    map.put(void.class, Void.class);
+    PRIMITIVES_TO_WRAPPERS = Collections.unmodifiableMap(map);
+  }
+
+  public static Class<?> primitiveToWrapper(Class<?> clazz) {
+    if (clazz.isPrimitive()) {
+      Class<?> wrapper = PRIMITIVES_TO_WRAPPERS.get(clazz);
+      if (wrapper != null) {
+        return wrapper;
+      }
+    }
+    return clazz;
+  }
 
   /**
    * A buffer containing the internal name of this Java type. This field is only used for reference

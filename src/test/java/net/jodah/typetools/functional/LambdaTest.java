@@ -1,8 +1,12 @@
 package net.jodah.typetools.functional;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -243,4 +247,61 @@ public class LambdaTest extends AbstractTypeResolverTest {
     assertEquals(typeArgs[0], UUID.class);
     assertEquals(typeArgs[1], String.class);
   }
+
+  /**
+   * Asserts that when resolving type argument variables for a method ref, the correct ParameterizedType is returned.
+   */
+  public void shouldResolveMethodRefGenericArguments() {
+    Consumer<Optional<String>> consumer = this::foo;
+
+    Type[] arguments = TypeResolver.resolveTypeArgumentVariables(Consumer.class, consumer.getClass());
+    assertEquals(arguments.length, 1);
+    Type argument = arguments[0];
+    assertTrue(argument instanceof ParameterizedType);
+    ParameterizedType type = (ParameterizedType) argument;
+    assertEquals(type.getRawType(), Optional.class);
+    assertEquals(type.getActualTypeArguments()[0], String.class);
+  }
+
+  private void foo(Optional<String> foo) {
+  }
+
+  /**
+   * Asserts that when resolving type argument variables for a lambda, the correct ParameterizedType is returned.
+   *
+   * Note: disabled since the Java compiler doesn't include generic information in synthetic lambda method signatures.
+   */
+  @Test(enabled = false)
+  public void shouldResolveLambdaGenericArguments() {
+    Consumer<Optional<String>> consumer = (Optional<String> optString) -> System.out.println(optString);
+
+    Type[] arguments = TypeResolver.resolveTypeArgumentVariables(Consumer.class, consumer.getClass());
+    assertEquals(arguments.length, 1);
+    Type argument = arguments[0];
+    assertTrue(argument instanceof ParameterizedType);
+    ParameterizedType type = (ParameterizedType) argument;
+    assertEquals(type.getRawType(), Optional.class);
+    assertEquals(type.getActualTypeArguments()[0], String.class);
+  }
+
+  public static class Foo2 {
+    public Foo2(Optional<String> arg) {}
+  }
+
+  /**
+   * Asserts that when resolving type argument variables for a constructor ref, the correct ParameterizedType is
+   * returned.
+   */
+  public void shouldResolveConstructorRefArguments() {
+    Consumer<Optional<String>> consumer = Foo2::new;
+
+    Type[] arguments = TypeResolver.resolveTypeArgumentVariables(Consumer.class, consumer.getClass());
+    assertEquals(arguments.length, 1);
+    Type argument = arguments[0];
+    assertTrue(argument instanceof ParameterizedType);
+    ParameterizedType type = (ParameterizedType) argument;
+    assertEquals(type.getRawType(), Optional.class);
+    assertEquals(type.getActualTypeArguments()[0], String.class);
+  }
+
 }

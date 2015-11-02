@@ -17,13 +17,7 @@ package net.jodah.typetools;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.Array;
-import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
+import java.lang.reflect.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -182,6 +176,49 @@ public final class TypeResolver {
   }
 
   /**
+   * Returns an array of types representing arguments for the {@code genericType} using type variable information
+   * from the {@code subType}. Arguments for {@code genericType} that cannot be resolved are returned as
+   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is returned.
+   *
+   * This method only resolves type variables, it does not resolve anything further than that. It is primarily useful
+   * for getting the types of lambda parameters.
+   *
+   * @param genericType to resolve arguments for
+   * @param subType to extract type variable information from
+   * @return array of types representing arguments for the {@code genericType} else {@code null} if no type
+   *         arguments are declared
+   */
+  public static Type[] resolveTypeArgumentVariables(Type genericType, Class<?> subType) {
+    Type[] result = null;
+    Class<?> functionalInterface = null;
+
+    // Handle lambdas
+    if (SUPPORTS_LAMBDAS && subType.isSynthetic()) {
+      Class<?> fi = genericType instanceof ParameterizedType
+              && ((ParameterizedType) genericType).getRawType() instanceof Class
+              ? (Class<?>) ((ParameterizedType) genericType).getRawType()
+              : genericType instanceof Class ? (Class<?>) genericType : null;
+      if (fi != null && fi.isInterface())
+        functionalInterface = fi;
+    }
+
+    if (genericType instanceof ParameterizedType) {
+      ParameterizedType paramType = (ParameterizedType) genericType;
+      result = paramType.getActualTypeArguments();
+    } else if (genericType instanceof TypeVariable) {
+      result = new Type[1];
+      result[0] = resolveTypeVariable((TypeVariable<?>) genericType, subType, functionalInterface);
+    } else if (genericType instanceof Class) {
+      TypeVariable<?>[] typeParams = ((Class<?>) genericType).getTypeParameters();
+      result = new Type[typeParams.length];
+      for (int i = 0; i < typeParams.length; i++)
+        result[i] = resolveTypeVariable(typeParams[i], subType, functionalInterface);
+    }
+
+    return result;
+  }
+
+  /**
    * Returns the generic {@code type} using type variable information from the {@code subType} else {@code null} if the
    * generic type cannot be resolved.
    * 
@@ -229,7 +266,7 @@ public final class TypeResolver {
 
   private static Class<?> resolveRawClass(Type genericType, Class<?> subType, Class<?> functionalInterface) {
     if (genericType instanceof Class) {
-      return (Class<?>) genericType;
+      return TypeDescriptor.primitiveToWrapper((Class<?>) genericType);
     } else if (genericType instanceof ParameterizedType) {
       return resolveRawClass(((ParameterizedType) genericType).getRawType(), subType, functionalInterface);
     } else if (genericType instanceof GenericArrayType) {
@@ -244,6 +281,12 @@ public final class TypeResolver {
     }
 
     return genericType instanceof Class ? (Class<?>) genericType : Unknown.class;
+  }
+
+  private static Type resolveTypeVariable(TypeVariable<?> typeVariable, Class<?> subType, Class<?> functionalInterface) {
+    Type genericType = getTypeVariableMap(subType, functionalInterface).get(typeVariable);
+    genericType = genericType == null ? resolveBound(typeVariable) : genericType;
+    return genericType != null ? genericType : Unknown.class;
   }
 
   private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
@@ -323,26 +366,60 @@ public final class TypeResolver {
               }
             }
 
-            if (returnTypeVar instanceof TypeVariable) {
-              Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
-              if (!returnType.equals(Void.class))
-                map.put((TypeVariable<?>) returnTypeVar, returnType);
+            // Try to load the class that the method ref is defined on
+            Class<?> ownerClass = TypeDescriptor.getObjectType(methodRefInfo[0]).getType(lambdaType.getClassLoader());
+
+            // Now load the argument classes
+            TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
+            Class<?>[] argumentClasses = new Class<?>[arguments.length];
+            for (int i = 0; i < arguments.length; i++) {
+              argumentClasses[i] = arguments[i].getType(lambdaType.getClassLoader());
             }
 
-            TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
+            // Now try to locate the referenced method
+            Executable method = null;
+
+            if (ownerClass != null) {
+              if (methodRefInfo[1].equals("<init>")) {
+                method = ownerClass.getDeclaredConstructor(argumentClasses);
+              } else {
+                method = ownerClass.getDeclaredMethod(methodRefInfo[1], argumentClasses);
+              }
+            }
+
+            if (returnTypeVar instanceof TypeVariable) {
+              Type returnType;
+              if (method != null) {
+                if (method instanceof Method) {
+                  returnType = ((Method) method).getGenericReturnType();
+                } else {
+                  returnType = ownerClass;
+                }
+              } else {
+                returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
+              }
+              if (!Void.class.equals(returnType))
+                map.put((TypeVariable<?>) returnTypeVar, returnType);
+            }
 
             // Handle arbitrary object instance method references
             int offset = 0;
             if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
-              Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0])
-                  .getType(lambdaType.getClassLoader());
-              map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
+              map.put((TypeVariable<?>) paramTypeVars[0], ownerClass);
               offset = 1;
             }
 
-            for (int i = 0; i < arguments.length; i++)
-              if (paramTypeVars[i + offset] instanceof TypeVariable)
-                map.put((TypeVariable<?>) paramTypeVars[i + offset], arguments[i].getType(lambdaType.getClassLoader()));
+            for (int i = 0; i < arguments.length; i++) {
+              if (paramTypeVars[i + offset] instanceof TypeVariable) {
+                Type paramType;
+                if (method != null) {
+                  paramType = method.getGenericParameterTypes()[i];
+                } else {
+                  paramType = arguments[i].getType(lambdaType.getClassLoader());
+                }
+                map.put((TypeVariable<?>) paramTypeVars[i + offset], paramType);
+              }
+            }
             break;
           }
         }
