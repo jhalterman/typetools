@@ -308,7 +308,7 @@ public final class TypeResolver {
             // Get functional interface's type params
             Type returnTypeVar = m.getGenericReturnType();
             Type[] paramTypeVars = m.getGenericParameterTypes();
-
+            
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
             String[] methodRefInfo = constantPool
@@ -330,19 +330,27 @@ public final class TypeResolver {
             }
 
             TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
-
+            
             // Handle arbitrary object instance method references
-            int offset = 0;
+            int paramOffset = 0;
             if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
               Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0])
                   .getType(lambdaType.getClassLoader());
               map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
-              offset = 1;
+              paramOffset = 1;
             }
 
-            for (int i = 0; i < arguments.length; i++)
-              if (paramTypeVars[i + offset] instanceof TypeVariable)
-                map.put((TypeVariable<?>) paramTypeVars[i + offset], arguments[i].getType(lambdaType.getClassLoader()));
+            // Handle local final variables from context that are passed as arguments.
+            int argOffset = 0;
+            if(paramTypeVars.length < arguments.length ) {
+              argOffset = arguments.length - paramTypeVars.length;
+            }
+            
+            for(int i = 0; i + argOffset < arguments.length; i++) {
+              if (paramTypeVars[i] instanceof TypeVariable) {
+                map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], arguments[i + argOffset].getType(lambdaType.getClassLoader()));
+              }
+            }
             break;
           }
         }
