@@ -4,6 +4,7 @@ import static org.testng.Assert.assertEquals;
 
 import java.util.Comparator;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
@@ -103,6 +104,18 @@ public class LambdaTest extends AbstractTypeResolverTest {
     assertEquals(TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass()), String.class);
   }
 
+  public void shouldResolveArgumentsCorrectly() {
+
+    final AtomicLong a = new AtomicLong(0);
+    Function<String, Long> func = (s) -> {
+      a.incrementAndGet();
+      return (long)s.hashCode();
+    };
+
+    assertEquals(new Class<?>[] {String.class, Long.class}, TypeResolver.resolveRawArguments(Function.class, func.getClass()));
+
+  }
+  
   /**
    * Asserts that arguments can be resolved from method references for simple functional interfaces.
    */
