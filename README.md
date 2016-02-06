@@ -152,4 +152,4 @@ JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
 
 ## License
 
-Copyright 2010-2015 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2010-2016 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
