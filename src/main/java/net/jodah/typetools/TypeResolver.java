@@ -49,7 +49,13 @@ public final class TypeResolver {
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
 
   static {
-    SUPPORTS_LAMBDAS = Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
+    boolean onAndroid = false;
+    try {
+        Class.forName("android.os.Build");
+        onAndroid = Integer.valueOf(System.getProperty("java.version")) == 0;
+    } catch (ClassNotFoundException ignored) {}
+
+    SUPPORTS_LAMBDAS = !onAndroid && Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
     if (SUPPORTS_LAMBDAS) {
       for (Method method : Object.class.getDeclaredMethods())
         OBJECT_METHODS.put(method.getName(), method);
