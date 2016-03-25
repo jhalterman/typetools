@@ -33,7 +33,7 @@ import java.util.WeakHashMap;
 import sun.reflect.ConstantPool;
 
 /**
- * Enhanced type resolution utilities. Originally based on org.springframework.core.GenericTypeResolver.
+ * Enhanced type resolution utilities.
  * 
  * @author Jonathan Halterman
  */
