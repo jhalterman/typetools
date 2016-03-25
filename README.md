@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools) 
 
-A simple, zero-dependency library for working with types. Supports Java 1.6+.
+A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
 
 ## Introduction
 

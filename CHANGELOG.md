@@ -1,3 +1,8 @@
+## 0.4.5
+
+* Issue #18 - Added proper android support
+* Issue #17 - Handle context final variables that are passed as argument
+
 ## 0.4.4
 
 * Fixed issue #11 - Disabling the cache breaks type resolution.
