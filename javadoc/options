@@ -1,23 +1,21 @@
--classpath
-'/Users/jonathan/dev/typetools/target/classes'
 -encoding
 'UTF-8'
 -protected
 -sourcepath
 '/Users/jonathan/dev/typetools/src/main/java'
 -bottom
-'Copyright &#169; 2014. All Rights Reserved.'
+'Copyright &#169; 2016. All rights reserved.'
 -charset
 'UTF-8'
 -d
-'/Users/jonathan/dev/typetools/docs/javadoc'
+'/Users/jonathan/dev/typetools/target/docs/javadoc'
 -docencoding
 'UTF-8'
 -doctitle
-'TypeTools 0.4.1-SNAPSHOT API'
+'TypeTools 0.4.6-SNAPSHOT API'
 -linkoffline
-'http://docs.oracle.com/javase/7/docs/api' '/Users/jonathan/dev/typetools/target/javadoc-bundle-options'
+'http://docs.oracle.com/javase/8/docs/api' '/Users/jonathan/dev/typetools/target/javadoc-bundle-options'
 -use
 -version
 -windowtitle
-'TypeTools 0.4.1-SNAPSHOT API'
+'TypeTools 0.4.6-SNAPSHOT API'
