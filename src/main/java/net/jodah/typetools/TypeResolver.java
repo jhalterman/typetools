@@ -19,7 +19,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -48,6 +47,7 @@ public final class TypeResolver {
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
+  private static final int MIN_CONSTANT_POOL_SIZE = 22;
 
   static {
     boolean onAndroid = false;
@@ -326,7 +326,7 @@ public final class TypeResolver {
                 .getMemberRefInfoAt(constantPool.getSize() - resolveMethodRefOffset(constantPool));
 
             // Skip auto boxing methods
-            if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
+            if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > MIN_CONSTANT_POOL_SIZE) {
               try {
                 methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool));
               } catch (MethodRefOffsetResolutionFailed ignore) {
