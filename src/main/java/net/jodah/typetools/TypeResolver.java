@@ -343,7 +343,7 @@ public final class TypeResolver {
             
             // Handle arbitrary object instance method references
             int paramOffset = 0;
-            if (paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
+            if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable && paramTypeVars.length == arguments.length + 1) {
               Class<?> instanceType = TypeDescriptor.getObjectType(methodRefInfo[0])
                   .getType(lambdaType.getClassLoader());
               map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
