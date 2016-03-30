@@ -318,7 +318,7 @@ public final class TypeResolver {
             // Get lambda's type arguments
             ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
             String[] methodRefInfo = constantPool
-                .getMemberRefInfoAt(constantPool.getSize() - resolveMethodRefOffset(constantPool, lambdaType));
+                .getMemberRefInfoAt(constantPool.getSize() - resolveMethodRefOffset(constantPool));
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
@@ -451,7 +451,7 @@ public final class TypeResolver {
   /**
    * Resolves method ref offset.
    */
-  private static int resolveMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+  private static int resolveMethodRefOffset(ConstantPool constantPool) {
     int offset = METHOD_REF_OFFSET;
 
     if (offset == -1) {
@@ -482,10 +482,11 @@ public final class TypeResolver {
   private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
     int constantPoolSize = constantPool.getSize();
 
-    for (int i = resolveMethodRefOffset(constantPool, lambdaType) + 1; i < constantPoolSize; i++) {
+    for (int i = resolveMethodRefOffset(constantPool) + 1; i < constantPoolSize; i++) {
       try {
         // ignore constructor
-        if (!constantPool.getMemberRefInfoAt(constantPoolSize - i)[1].equals("<init>"))
+        String[] refs = constantPool.getMemberRefInfoAt(constantPoolSize - i);
+        if (!refs[1].equals("<init>"))
           return i;
       } catch (IllegalArgumentException ignore) {
       }
