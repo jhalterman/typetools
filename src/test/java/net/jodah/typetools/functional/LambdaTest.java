@@ -36,7 +36,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
   interface TriPredicate<A, B, C> {
     boolean test(A a, B b, C c);
   }
-  
+
   interface FnSubclass<T, V> extends Function<T, V> {
   }
 
@@ -72,7 +72,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
     boolean evaluate2(String s, int i) {
       return false;
     }
-    
+
     static boolean eval(String s) {
       return false;
     }
@@ -123,12 +123,13 @@ public class LambdaTest extends AbstractTypeResolverTest {
     final AtomicLong a = new AtomicLong(0);
     Function<String, Long> func = (s) -> {
       a.incrementAndGet();
-      return (long)s.hashCode();
+      return (long) s.hashCode();
     };
 
-    assertEquals(new Class<?>[] {String.class, Long.class}, TypeResolver.resolveRawArguments(Function.class, func.getClass()));
+    assertEquals(new Class<?>[] { String.class, Long.class },
+        TypeResolver.resolveRawArguments(Function.class, func.getClass()));
   }
-  
+
   /**
    * Asserts that arguments can be resolved from instance method references for simple functional interfaces.
    */
@@ -138,7 +139,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
 
     assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
   }
-  
+
   /**
    * Asserts that arguments can be resolved from static method references for simple functional interfaces.
    */
@@ -147,7 +148,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
 
     assertEquals(TypeResolver.resolveRawArgument(Comparator.class, c.getClass()), String.class);
   }
-  
+
   /**
    * Asserts that arguments can be resolved from arbitrary object method references for simple functional interfaces.
    */

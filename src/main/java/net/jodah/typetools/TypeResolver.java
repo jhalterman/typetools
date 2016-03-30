@@ -314,7 +314,6 @@ public final class TypeResolver {
           Type returnTypeVar = m.getGenericReturnType();
           Type[] paramTypeVars = m.getGenericParameterTypes();
 
-          // Get lambda's type arguments
           ConstantPool constantPool;
           try {
             constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
@@ -351,7 +350,7 @@ public final class TypeResolver {
             argOffset = arguments.length - paramTypeVars.length;
           }
 
-          // Populate type parameter arguments
+          // Populate type arguments
           for (int i = 0; i + argOffset < arguments.length; i++) {
             if (paramTypeVars[i] instanceof TypeVariable) {
               map.put((TypeVariable<?>) paramTypeVars[i + paramOffset],
