@@ -2,6 +2,7 @@ package net.jodah.typetools.functional;
 
 import static org.testng.Assert.assertEquals;
 
+import java.io.Serializable;
 import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -42,6 +43,9 @@ public class LambdaTest extends AbstractTypeResolverTest {
   };
 
   interface StrToInt extends SelectingFn<Integer, Long, String> {
+  };
+
+  interface SerializableFn<T, V> extends Function<T, V>, Serializable {
   };
 
   public static interface Function3<T, U, V, R> {
@@ -242,6 +246,10 @@ public class LambdaTest extends AbstractTypeResolverTest {
    */
   public void shouldHandlePassedLambda() {
     handlePassedFunction((UUID i) -> i.toString());
+  }
+
+  public void shouldHandlePassedSerializableLambda() {
+    handlePassedFunction((SerializableFn<UUID, String>) i -> i.toString());
   }
 
   /**
