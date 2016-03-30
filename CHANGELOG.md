@@ -1,3 +1,7 @@
+# 0.4.6
+
+* Issue #23 - Fixed resolution of serializable lambdas
+
 ## 0.4.5
 
 * Issue #18 - Added proper android support
