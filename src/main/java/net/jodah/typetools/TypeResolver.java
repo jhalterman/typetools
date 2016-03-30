@@ -42,7 +42,6 @@ public final class TypeResolver {
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
-  private static volatile int METHOD_REF_OFFSET = -1;
   private static volatile boolean CACHE_ENABLED = true;
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
@@ -324,14 +323,10 @@ public final class TypeResolver {
             break;
           }
 
-          int methodRefOffset = resolveMethodRefOffset(constantPool);
-          String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - methodRefOffset);
-
-          // Skip auto boxing methods
-          methodRefOffset = resolveAutoboxedMethodRefOffset(constantPool);
-          if (methodRefOffset != -1 && methodRefInfo[1].equals("valueOf")
-              && constantPool.getSize() > MIN_CONSTANT_POOL_SIZE)
-            methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - methodRefOffset);
+          String[] methodRefInfo = getMethodRefInfo(constantPool);
+          if (methodRefInfo == null) {
+            break;
+          }
 
           if (returnTypeVar instanceof TypeVariable) {
             Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
@@ -448,53 +443,33 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves method ref offset.
-   * 
-   * @return The method ref offset for the {@code constantPool} else -1
+   * Resolves method ref info.
+   *
+   * @return the method ref info for the {@code constantPool}, or null if no appropriate method ref
+   * could be found.
    */
-  private static int resolveMethodRefOffset(ConstantPool constantPool) {
-    int offset = METHOD_REF_OFFSET;
-
-    if (offset == -1) {
-      int constantPoolSize = constantPool.getSize();
-
-      for (int i = 0; i < constantPoolSize; i++) {
-        try {
-          constantPool.getMemberRefInfoAt(constantPoolSize - i);
-          offset = i;
-          break;
-        } catch (IllegalArgumentException ignore) {
-        }
-      }
-
-      METHOD_REF_OFFSET = offset;
-    }
-
-    if (offset >= 0)
-      return offset;
-    else
-      return -1;
-  }
-
-  /**
-   * Resolves method ref offset of method reference lambda type having autoboxed return type. We can't cache the result
-   * value because results are different depending on given {@code lambdaType}.
-   * 
-   * @return The method ref offset for the {@code constantPool} else -1
-   */
-  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool) {
+  private static String[] getMethodRefInfo(ConstantPool constantPool) {
     int constantPoolSize = constantPool.getSize();
+    String[] returnValue = null;
 
-    for (int i = resolveMethodRefOffset(constantPool) + 1; i < constantPoolSize; i++) {
+    for (int i = 0; i < constantPoolSize; i++) {
       try {
-        // ignore constructor
-        String[] refs = constantPool.getMemberRefInfoAt(constantPoolSize - i);
-        if (!refs[1].equals("<init>"))
-          return i;
+        String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPoolSize - i);
+        String methodName = methodRefInfo[1];
+        // Always ignore constructors
+        if (methodName.equals("<init>")) {
+          continue;
+        }
+        // If we found a method named valueOf, keep searching for other methods but still return
+        // the information for the valueOf method in case it turns out to be the only valid method.
+        returnValue = methodRefInfo;
+        if (!methodName.equals("valueOf")) {
+          break;
+        }
       } catch (IllegalArgumentException ignore) {
       }
     }
 
-    return -1;
+    return returnValue;
   }
 }
