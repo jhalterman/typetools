@@ -46,7 +46,6 @@ public final class TypeResolver {
   private static boolean SUPPORTS_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static final int MIN_CONSTANT_POOL_SIZE = 22;
 
   static {
     boolean onAndroid = false;
