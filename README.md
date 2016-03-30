@@ -1,5 +1,6 @@
 # TypeTools
 [![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
+[![Code Coverage](https://codecov.io/github/jhalterman/typetools/coverage.svg?branch=master)](https://codecov.io/github/jhalterman/typetools?branch=master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools) 
 
 A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
