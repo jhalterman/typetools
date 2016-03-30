@@ -19,6 +19,7 @@ import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -302,7 +303,6 @@ public final class TypeResolver {
   private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
       Map<TypeVariable<?>, Type> map) {
     if (GET_CONSTANT_POOL != null) {
-      try {
         // Find SAM
         for (Method m : functionalInterface.getMethods()) {
           if (!m.isDefault() && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
@@ -316,15 +316,19 @@ public final class TypeResolver {
             Type[] paramTypeVars = m.getGenericParameterTypes();
             
             // Get lambda's type arguments
-            ConstantPool constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
+            ConstantPool constantPool;
+            try {
+              constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
+            } catch (Exception e) {
+              break;
+            }
             String[] methodRefInfo = constantPool
                 .getMemberRefInfoAt(constantPool.getSize() - resolveMethodRefOffset(constantPool));
 
             // Skip auto boxing methods
             if (methodRefInfo[1].equals("valueOf") && constantPool.getSize() > 22) {
               try {
-                methodRefInfo = constantPool.getMemberRefInfoAt(
-                    constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool, lambdaType));
+                methodRefInfo = constantPool.getMemberRefInfoAt(constantPool.getSize() - resolveAutoboxedMethodRefOffset(constantPool));
               } catch (MethodRefOffsetResolutionFailed ignore) {
               }
             }
@@ -360,9 +364,6 @@ public final class TypeResolver {
             break;
           }
         }
-
-      } catch (Exception ignore) {
-      }
     }
   }
 
@@ -479,7 +480,7 @@ public final class TypeResolver {
    * Resolves method ref offset of method reference lambda type having autoboxed return type. We can't cache the result
    * value because results are different depending on given {@code lambdaType}.
    */
-  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool, Class<?> lambdaType) {
+  private static int resolveAutoboxedMethodRefOffset(ConstantPool constantPool) {
     int constantPoolSize = constantPool.getSize();
 
     for (int i = resolveMethodRefOffset(constantPool) + 1; i < constantPoolSize; i++) {
