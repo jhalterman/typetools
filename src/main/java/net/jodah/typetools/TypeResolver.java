@@ -448,12 +448,11 @@ public final class TypeResolver {
    * could be found.
    */
   private static String[] getMethodRefInfo(ConstantPool constantPool) {
-    int constantPoolSize = constantPool.getSize();
     String[] returnValue = null;
 
-    for (int i = 0; i < constantPoolSize; i++) {
+    for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
-        String[] methodRefInfo = constantPool.getMemberRefInfoAt(constantPoolSize - i);
+        String[] methodRefInfo = constantPool.getMemberRefInfoAt(i);
         String methodName = methodRefInfo[1];
         // Always ignore constructors
         if (methodName.equals("<init>")) {
