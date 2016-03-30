@@ -6,6 +6,7 @@ import static org.testng.Assert.assertNull;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -145,6 +146,20 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     Class<?>[] args = TypeResolver.resolveRawArguments(IIRepo.class, SimpleRepo.class);
     assertEquals(args[0], String.class);
     assertEquals(args[1], List.class);
+  }
+
+  static class TypeArrayFixture<T> {
+    T[] test;
+  }
+
+  static class TypeArrayImpl extends TypeArrayFixture<String> {
+  }
+
+  public void shouldResolveGenericTypeArray() throws Throwable {
+    Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
+
+    Class<?> arg = TypeResolver.resolveRawClass(arrayField, TypeArrayImpl.class);
+    assertEquals(arg, String[].class);
   }
 
   public void shouldReturnNullOnResolveArgumentsForNonParameterizedType() {
