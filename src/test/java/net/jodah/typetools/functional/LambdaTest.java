@@ -33,6 +33,10 @@ public class LambdaTest extends AbstractTypeResolverTest {
     super(cacheEnabled);
   }
 
+  interface TriPredicate<A, B, C> {
+    boolean test(A a, B b, C c);
+  }
+  
   interface FnSubclass<T, V> extends Function<T, V> {
   }
 
@@ -65,6 +69,10 @@ public class LambdaTest extends AbstractTypeResolverTest {
       return false;
     }
 
+    boolean evaluate2(String s, int i) {
+      return false;
+    }
+    
     static boolean eval(String s) {
       return false;
     }
@@ -108,8 +116,10 @@ public class LambdaTest extends AbstractTypeResolverTest {
     assertEquals(TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass()), String.class);
   }
 
-  public void shouldResolveArgumentsCorrectly() {
-
+  /**
+   * Asserts that arguments captured from the enclosing scope can be resolved.
+   */
+  public void shouldResolveCapturedArguments() {
     final AtomicLong a = new AtomicLong(0);
     Function<String, Long> func = (s) -> {
       a.incrementAndGet();
@@ -117,24 +127,40 @@ public class LambdaTest extends AbstractTypeResolverTest {
     };
 
     assertEquals(new Class<?>[] {String.class, Long.class}, TypeResolver.resolveRawArguments(Function.class, func.getClass()));
-
   }
   
   /**
-   * Asserts that arguments can be resolved from method references for simple functional interfaces.
+   * Asserts that arguments can be resolved from instance method references for simple functional interfaces.
    */
-  public void shouldResolveArgumentsFromMethodRefs() {
+  public void shouldResolveArgumentsFromInstanceMethodRefs() {
     Baz baz = new Baz();
     Predicate<String> p1 = baz::evaluate;
-    Predicate<String> p2 = Baz::eval;
-    BiPredicate<Baz, String> p3 = Baz::evaluate;
-    Comparator<String> c = String::compareToIgnoreCase;
 
     assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p2.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArguments(BiPredicate.class, p3.getClass()),
-        new Class<?>[] { Baz.class, String.class });
+  }
+  
+  /**
+   * Asserts that arguments can be resolved from static method references for simple functional interfaces.
+   */
+  public void shouldResolveArgumentsFromStaticMethodRefs() {
+    Comparator<String> c = String::compareToIgnoreCase;
+
     assertEquals(TypeResolver.resolveRawArgument(Comparator.class, c.getClass()), String.class);
+  }
+  
+  /**
+   * Asserts that arguments can be resolved from arbitrary object method references for simple functional interfaces.
+   */
+  public void shouldResolveArgumentsFromArbitraryObjectMethodRefs() {
+    Predicate<String> p1 = Baz::eval;
+    BiPredicate<Baz, String> p2 = Baz::evaluate;
+    TriPredicate<Baz, String, Integer> p3 = Baz::evaluate2;
+
+    assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
+    assertEquals(TypeResolver.resolveRawArguments(BiPredicate.class, p2.getClass()),
+        new Class<?>[] { Baz.class, String.class });
+    assertEquals(TypeResolver.resolveRawArguments(TriPredicate.class, p3.getClass()),
+        new Class<?>[] { Baz.class, String.class, Integer.class });
   }
 
   /**

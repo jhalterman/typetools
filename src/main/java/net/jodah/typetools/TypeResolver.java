@@ -319,14 +319,15 @@ public final class TypeResolver {
           try {
             constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType);
           } catch (Exception e) {
-            break;
+            return;
           }
 
           String[] methodRefInfo = getMethodRefInfo(constantPool);
           if (methodRefInfo == null) {
-            break;
+            return;
           }
 
+          // Populate return type argument
           if (returnTypeVar instanceof TypeVariable) {
             Class<?> returnType = TypeDescriptor.getReturnType(methodRefInfo[2]).getType(lambdaType.getClassLoader());
             if (!returnType.equals(Void.class))
@@ -335,7 +336,7 @@ public final class TypeResolver {
 
           TypeDescriptor[] arguments = TypeDescriptor.getArgumentTypes(methodRefInfo[2]);
 
-          // Handle arbitrary object instance method references
+          // Populate object type from arbitrary object method reference
           int paramOffset = 0;
           if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
               && paramTypeVars.length == arguments.length + 1) {
@@ -344,19 +345,21 @@ public final class TypeResolver {
             paramOffset = 1;
           }
 
-          // Handle local final variables from context that are passed as arguments.
+          // Handle additional arguments that are captured from the lambda's enclosing scope
           int argOffset = 0;
           if (paramTypeVars.length < arguments.length) {
             argOffset = arguments.length - paramTypeVars.length;
           }
 
+          // Populate type parameter arguments
           for (int i = 0; i + argOffset < arguments.length; i++) {
             if (paramTypeVars[i] instanceof TypeVariable) {
               map.put((TypeVariable<?>) paramTypeVars[i + paramOffset],
                   arguments[i + argOffset].getType(lambdaType.getClassLoader()));
             }
           }
-          break;
+
+          return;
         }
       }
     }
@@ -444,8 +447,7 @@ public final class TypeResolver {
   /**
    * Resolves method ref info.
    *
-   * @return the method ref info for the {@code constantPool}, or null if no appropriate method ref
-   * could be found.
+   * @return the method ref info for the {@code constantPool}, or null if no appropriate method ref could be found.
    */
   private static String[] getMethodRefInfo(ConstantPool constantPool) {
     String[] returnValue = null;
