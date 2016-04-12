@@ -43,31 +43,23 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static boolean SUPPORTS_LAMBDAS;
+  private static boolean RESOLVES_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
   private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
 
   static {
-    boolean onAndroid = false;
-    try {
-      Class.forName("android.os.Build");
-      onAndroid = Integer.valueOf(System.getProperty("java.version")) == 0;
-    } catch (ClassNotFoundException ignored) {
-    }
-
-    SUPPORTS_LAMBDAS = !onAndroid && Double.valueOf(System.getProperty("java.version").substring(0, 3)) >= 1.8;
-    if (SUPPORTS_LAMBDAS) {
-      for (Method method : Object.class.getDeclaredMethods())
-        OBJECT_METHODS.put(method.getName(), method);
-
+    Double javaVersion = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    if (javaVersion >= 1.8) {
       try {
         GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
         GET_CONSTANT_POOL.setAccessible(true);
+
+        for (Method method : Object.class.getDeclaredMethods())
+          OBJECT_METHODS.put(method.getName(), method);
+
+        RESOLVES_LAMBDAS = true;
       } catch (Exception e) {
       }
-
-      if (GET_CONSTANT_POOL == null)
-        SUPPORTS_LAMBDAS = false;
     }
   }
 
@@ -159,7 +151,7 @@ public final class TypeResolver {
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (SUPPORTS_LAMBDAS && subType.isSynthetic()) {
+    if (RESOLVES_LAMBDAS && subType.isSynthetic()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
