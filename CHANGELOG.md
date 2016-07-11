@@ -1,6 +1,14 @@
+# 0.4.7
+
+### Bug Fixes
+
+* Issue #27 - Fixed resolution of array type args.
+
 # 0.4.6
 
-* Issue #23 - Fixed resolution of serializable lambdas
+### Bug Fixes
+
+* Issue #23 - Fixed resolution of serializable lambdas.
 
 ## 0.4.5
 
