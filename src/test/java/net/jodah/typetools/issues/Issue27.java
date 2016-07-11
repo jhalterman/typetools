@@ -1,5 +1,7 @@
 package net.jodah.typetools.issues;
 
+import static org.testng.Assert.assertEquals;
+
 import java.util.function.Function;
 
 import org.testng.annotations.Test;
@@ -11,8 +13,12 @@ import net.jodah.typetools.TypeResolver;
  */
 @Test
 public class Issue27 {
-  public void test() {
+  public void test() throws Throwable {
     Function<String[], String> fn = (String[] strings) -> strings.toString();
-    TypeResolver.resolveRawArguments(Function.class, fn.getClass());
+
+    Class<?>[] args = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
+
+    assertEquals(args[0], Class.forName("[Ljava.lang.String;"));
+    assertEquals(args[1], String.class);
   }
 }

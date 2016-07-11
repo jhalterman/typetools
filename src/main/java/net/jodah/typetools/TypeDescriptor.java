@@ -348,7 +348,7 @@ final class TypeDescriptor {
           for (int i = getDimensions(); i > 0; --i)
             sb.append("[");
           sb.append('L').append(elementType.getType().getName()).append(';');
-          return loader == null ? Class.forName(sb.toString()) : loader.loadClass(sb.toString());
+          return loader == null ? Class.forName(sb.toString()) : Class.forName(sb.toString(), false, loader);
         case OBJECT:
           String clazz = new String(buf, off, len).replace('/', '.');
           return loader == null ? Class.forName(clazz) : loader.loadClass(clazz); 
