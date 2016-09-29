@@ -35,7 +35,7 @@ public final class TypeResolver {
   private static volatile boolean CACHE_ENABLED = true;
   private static boolean RESOLVES_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
-  private static Map<String, Method> OBJECT_METHODS = new HashMap<>();
+  private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Double javaVersion;
 
   static {
@@ -239,7 +239,7 @@ public final class TypeResolver {
     Map<TypeVariable<?>, Type> map = ref != null ? ref.get() : null;
 
     if (map == null) {
-      map = new HashMap<>();
+      map = new HashMap<TypeVariable<?>, Type>();
 
       // Populate lambdas
       if (functionalInterface != null)
@@ -271,101 +271,10 @@ public final class TypeResolver {
       }
 
       if (CACHE_ENABLED)
-        typeVariableCache.put(targetType, new WeakReference<>(map));
+        typeVariableCache.put(targetType, new WeakReference<Map<TypeVariable<?>, Type>>(map));
     }
 
     return map;
-  }
-
-  /**
-   * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
-   */
-  private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-      Map<TypeVariable<?>, Type> map) {
-    if (GET_CONSTANT_POOL != null) {
-      // Find SAM
-      for (Method m : functionalInterface.getMethods()) {
-        if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
-          // Skip methods that override Object.class
-          Method objectMethod = OBJECT_METHODS.get(m.getName());
-          if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
-            continue;
-
-          // Get functional interface's type params
-          Type returnTypeVar = m.getGenericReturnType();
-          Type[] paramTypeVars = m.getGenericParameterTypes();
-
-          Method methodInfo;
-          try {
-            methodInfo = getMethodInfo((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType));
-            if (methodInfo == null) {
-              return;
-            }
-          } catch (Exception e) {
-            return;
-          }
-
-          // Populate return type argument
-          if (returnTypeVar instanceof TypeVariable) {
-            Class<?> returnType = methodInfo.getReturnType();
-            returnType = wrapPrimitives(returnType);
-            if (!returnType.equals(Void.class)) {
-              map.put((TypeVariable<?>) returnTypeVar, returnType);
-            }
-          }
-
-          Class<?>[] arguments = methodInfo.getParameterTypes();
-
-          // Populate object type from arbitrary object method reference
-          int paramOffset = 0;
-          if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
-              && paramTypeVars.length == arguments.length + 1) {
-            Class<?> instanceType = methodInfo.getDeclaringClass();
-            map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
-            paramOffset = 1;
-          }
-
-          // Handle additional arguments that are captured from the lambda's enclosing scope
-          int argOffset = 0;
-          if (paramTypeVars.length < arguments.length) {
-            argOffset = arguments.length - paramTypeVars.length;
-          }
-
-          // Populate type arguments
-          for (int i = 0; i + argOffset < arguments.length; i++) {
-            if (paramTypeVars[i] instanceof TypeVariable) {
-              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset],
-                  wrapPrimitives(arguments[i + argOffset]));
-            }
-          }
-
-          return;
-        }
-      }
-    }
-  }
-
-  private static final Map<Class<?>, Class<?>> primitives;
-  static {
-    HashMap<Class<?>, Class<?>> types = new HashMap<>();
-    types.put(boolean.class, Boolean.class);
-    types.put(byte.class, Byte.class);
-    types.put(char.class, Character.class);
-    types.put(double.class, Double.class);
-    types.put(float.class, Float.class);
-    types.put(int.class, Integer.class);
-    types.put(long.class, Long.class);
-    types.put(short.class, Short.class);
-    types.put(void.class, Void.class);
-    primitives = Collections.unmodifiableMap(types);
-  }
-
-  private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive()? primitives.get(clazz): clazz;
-  }
-
-  private static boolean isDefaultMethod(Method m) {
-    return javaVersion >= 1.8 && m.isDefault();
   }
 
   /**
@@ -447,12 +356,85 @@ public final class TypeResolver {
     return bound == Object.class ? Unknown.class : bound;
   }
 
+  /**
+   * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
+   */
+  private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
+                                         Map<TypeVariable<?>, Type> map) {
+    if (GET_CONSTANT_POOL != null) {
+      // Find SAM
+      for (Method m : functionalInterface.getMethods()) {
+        if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
+          // Skip methods that override Object.class
+          Method objectMethod = OBJECT_METHODS.get(m.getName());
+          if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
+            continue;
+
+          // Get functional interface's type params
+          Type returnTypeVar = m.getGenericReturnType();
+          Type[] paramTypeVars = m.getGenericParameterTypes();
+
+          Method methodInfo;
+          try {
+            methodInfo = getMethodInfo((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType));
+            if (methodInfo == null) {
+              return;
+            }
+          } catch (Exception ignore) {
+            return;
+          }
+
+          // Populate return type argument
+          if (returnTypeVar instanceof TypeVariable) {
+            Class<?> returnType = methodInfo.getReturnType();
+            returnType = wrapPrimitives(returnType);
+            if (!returnType.equals(Void.class)) {
+              map.put((TypeVariable<?>) returnTypeVar, returnType);
+            }
+          }
+
+          Class<?>[] arguments = methodInfo.getParameterTypes();
+
+          // Populate object type from arbitrary object method reference
+          int paramOffset = 0;
+          if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
+                  && paramTypeVars.length == arguments.length + 1) {
+            Class<?> instanceType = methodInfo.getDeclaringClass();
+            map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
+            paramOffset = 1;
+          }
+
+          // Handle additional arguments that are captured from the lambda's enclosing scope
+          int argOffset = 0;
+          if (paramTypeVars.length < arguments.length) {
+            argOffset = arguments.length - paramTypeVars.length;
+          }
+
+          // Populate type arguments
+          for (int i = 0; i + argOffset < arguments.length; i++) {
+            if (paramTypeVars[i] instanceof TypeVariable) {
+              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset],
+                      wrapPrimitives(arguments[i + argOffset]));
+            }
+          }
+
+          return;
+        }
+      }
+    }
+  }
+
+  private static boolean isDefaultMethod(Method m) {
+    return javaVersion >= 1.8 && m.isDefault();
+  }
+
   private static Method getMethodInfo(ConstantPool constantPool) {
     Method returnValue = null;
 
     for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
         Member member = constantPool.getMethodAt(i);
+        //skip constructors
         if (!(member instanceof Method)) {
           continue;
         }
@@ -467,5 +449,24 @@ public final class TypeResolver {
     }
 
     return returnValue;
+  }
+
+  private static final Map<Class<?>, Class<?>> primitives;
+  static {
+    HashMap<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
+    types.put(boolean.class, Boolean.class);
+    types.put(byte.class, Byte.class);
+    types.put(char.class, Character.class);
+    types.put(double.class, Double.class);
+    types.put(float.class, Float.class);
+    types.put(int.class, Integer.class);
+    types.put(long.class, Long.class);
+    types.put(short.class, Short.class);
+    types.put(void.class, Void.class);
+    primitives = Collections.unmodifiableMap(types);
+  }
+
+  private static Class<?> wrapPrimitives(Class<?> clazz) {
+    return clazz.isPrimitive()? primitives.get(clazz): clazz;
   }
 }

@@ -23,7 +23,7 @@ import net.jodah.typetools.TypeResolver.Unknown;
 
 /**
  * Tests the resolution of type arguments defined on lambda expressions.
- * 
+ *
  * @author Jonathan Halterman
  */
 @Test
@@ -44,15 +44,15 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   interface SelectingFn<A, B, C> extends ReverseFn<A, C> {
-  };
+  }
 
   interface StrToInt extends SelectingFn<Integer, Long, String> {
-  };
+  }
 
   interface SerializableFn<T, V> extends Function<T, V>, Serializable {
-  };
+  }
 
-  public static interface Function3<T, U, V, R> {
+  public interface Function3<T, U, V, R> {
     R apply(T t, U u, V v);
   }
 
@@ -176,7 +176,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
   /**
    * Asserts that method references with primitive type arguments that are auto boxed to primitive wrappers are properly
    * handled.
-   * 
+   *
    * Note: disabled since method signature exposed via constant pool contains convert(String, Object). Subsequent
    * bytecode contains convert(String, String). May need ASM to read.
    */
