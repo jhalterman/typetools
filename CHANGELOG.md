@@ -1,3 +1,9 @@
+# 0.4.8
+
+### Improvements
+
+* Added RetroLambda support.
+
 # 0.4.7
 
 ### Bug Fixes
