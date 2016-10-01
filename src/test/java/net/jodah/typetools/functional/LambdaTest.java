@@ -240,11 +240,24 @@ public class LambdaTest extends AbstractTypeResolverTest {
         new Class<?>[] { String.class, Integer.class });
   }
 
+  public void shouldResolveSubclassArgumentsForConstructor() {
+    FnSubclass<String, Integer> fn = str -> new Integer(str);
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
+  }
+
   /**
    * Asserts that arguments can be resolved from a method reference when declared on a subclass of some type.
    */
   public void shouldResolveSubclassArgumentsForMethodRefs() {
     FnSubclass<String, Integer> fn = Integer::valueOf;
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { String.class, Integer.class });
+  }
+
+  @Test(enabled = false)
+  public void shouldResolveSubclassArgumentsForConstructorRef() {
+    FnSubclass<String, Integer> fn = Integer::new;
     assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
         new Class<?>[] { String.class, Integer.class });
   }
