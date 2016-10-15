@@ -376,7 +376,7 @@ public final class TypeResolver {
 
           Method methodInfo;
           try {
-            methodInfo = getMethodInfo((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType));
+            methodInfo = getMethodRef((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType), lambdaType);
             if (methodInfo == null) {
               return;
             }
@@ -428,14 +428,14 @@ public final class TypeResolver {
     return javaVersion >= 1.8 && m.isDefault();
   }
 
-  private static Method getMethodInfo(ConstantPool constantPool) {
+  private static Method getMethodRef(ConstantPool constantPool, Class<?> type) {
     Method returnValue = null;
 
     for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
         Member member = constantPool.getMethodAt(i);
-        //skip constructors
-        if (!(member instanceof Method)) {
+        //skip constructors and members of the "type" class
+        if (member instanceof Constructor || member.getDeclaringClass().isAssignableFrom(type)) {
           continue;
         }
         returnValue = (Method) member;
@@ -452,6 +452,7 @@ public final class TypeResolver {
   }
 
   private static final Map<Class<?>, Class<?>> primitives;
+
   static {
     HashMap<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
     types.put(boolean.class, Boolean.class);
@@ -467,6 +468,6 @@ public final class TypeResolver {
   }
 
   private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive()? primitives.get(clazz): clazz;
+    return clazz.isPrimitive() ? primitives.get(clazz) : clazz;
   }
 }

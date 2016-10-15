@@ -18,7 +18,7 @@ public class Issue27 {
 
     Class<?>[] args = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
 
-    assertEquals(args[0], Class.forName("[Ljava.lang.String;"));
+    assertEquals(args[0], String[].class);
     assertEquals(args[1], String.class);
   }
 }
