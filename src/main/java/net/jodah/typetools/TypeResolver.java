@@ -42,16 +42,17 @@ import sun.reflect.ConstantPool;
 @SuppressWarnings("restriction")
 public final class TypeResolver {
   /** Cache of type variable/argument pairs */
-  private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> typeVariableCache = Collections
+  private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
   private static boolean RESOLVES_LAMBDAS;
   private static Method GET_CONSTANT_POOL;
-  private static Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static final Double javaVersion;
+  private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
+  private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
+  private static final Double JAVA_VERSION;
 
   static {
-    javaVersion = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
     try {
       GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
       GET_CONSTANT_POOL.setAccessible(true);
@@ -62,6 +63,18 @@ public final class TypeResolver {
       RESOLVES_LAMBDAS = true;
     } catch (Exception ignore) {
     }
+
+    Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
+    types.put(boolean.class, Boolean.class);
+    types.put(byte.class, Byte.class);
+    types.put(char.class, Character.class);
+    types.put(double.class, Double.class);
+    types.put(float.class, Float.class);
+    types.put(int.class, Integer.class);
+    types.put(long.class, Long.class);
+    types.put(short.class, Short.class);
+    types.put(void.class, Void.class);
+    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
   }
 
   /** An unknown type. */
@@ -84,7 +97,7 @@ public final class TypeResolver {
    * Disables the internal caching of resolved TypeVariables.
    */
   public static void disableCache() {
-    typeVariableCache.clear();
+    TYPE_VARIABLE_CACHE.clear();
     CACHE_ENABLED = false;
   }
 
@@ -247,7 +260,7 @@ public final class TypeResolver {
 
   private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
       Class<?> functionalInterface) {
-    Reference<Map<TypeVariable<?>, Type>> ref = typeVariableCache.get(targetType);
+    Reference<Map<TypeVariable<?>, Type>> ref = TYPE_VARIABLE_CACHE.get(targetType);
     Map<TypeVariable<?>, Type> map = ref != null ? ref.get() : null;
 
     if (map == null) {
@@ -283,7 +296,7 @@ public final class TypeResolver {
       }
 
       if (CACHE_ENABLED)
-        typeVariableCache.put(targetType, new WeakReference<Map<TypeVariable<?>, Type>>(map));
+        TYPE_VARIABLE_CACHE.put(targetType, new WeakReference<Map<TypeVariable<?>, Type>>(map));
     }
 
     return map;
@@ -435,7 +448,7 @@ public final class TypeResolver {
   }
 
   private static boolean isDefaultMethod(Method m) {
-    return javaVersion >= 1.8 && m.isDefault();
+    return JAVA_VERSION >= 1.8 && m.isDefault();
   }
 
   private static Member getMemberRef(ConstantPool constantPool, Class<?> type) {
@@ -451,8 +464,7 @@ public final class TypeResolver {
 
         result = member;
 
-        // If we found a method named valueOf, keep searching for other methods but still return
-        // the information for the valueOf method in case it turns out to be the only valid method.
+        // Return if not valueOf method
         if (!(member instanceof Method) || !member.getName().equals("valueOf"))
           break;
       } catch (IllegalArgumentException ignore) {
@@ -462,23 +474,7 @@ public final class TypeResolver {
     return result;
   }
 
-  private static final Map<Class<?>, Class<?>> primitives;
-
-  static {
-    HashMap<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
-    types.put(boolean.class, Boolean.class);
-    types.put(byte.class, Byte.class);
-    types.put(char.class, Character.class);
-    types.put(double.class, Double.class);
-    types.put(float.class, Float.class);
-    types.put(int.class, Integer.class);
-    types.put(long.class, Long.class);
-    types.put(short.class, Short.class);
-    types.put(void.class, Void.class);
-    primitives = Collections.unmodifiableMap(types);
-  }
-
   private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive() ? primitives.get(clazz) : clazz;
+    return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS.get(clazz) : clazz;
   }
 }
