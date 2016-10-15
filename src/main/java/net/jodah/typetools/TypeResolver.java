@@ -15,12 +15,24 @@
  */
 package net.jodah.typetools;
 
-import sun.reflect.ConstantPool;
-
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import sun.reflect.ConstantPool;
 
 /**
  * Enhanced type resolution utilities.
@@ -360,7 +372,7 @@ public final class TypeResolver {
    * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
    */
   private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-                                         Map<TypeVariable<?>, Type> map) {
+      Map<TypeVariable<?>, Type> map) {
     if (GET_CONSTANT_POOL != null) {
       // Find SAM
       for (Method m : functionalInterface.getMethods()) {
@@ -374,32 +386,32 @@ public final class TypeResolver {
           Type returnTypeVar = m.getGenericReturnType();
           Type[] paramTypeVars = m.getGenericParameterTypes();
 
-          Method methodInfo;
+          Member member;
           try {
-            methodInfo = getMethodRef((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType), lambdaType);
-            if (methodInfo == null) {
+            member = getMemberRef((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType), lambdaType);
+            if (member == null)
               return;
-            }
           } catch (Exception ignore) {
             return;
           }
 
           // Populate return type argument
           if (returnTypeVar instanceof TypeVariable) {
-            Class<?> returnType = methodInfo.getReturnType();
+            Class<?> returnType = member instanceof Method ? ((Method) member).getReturnType()
+                : ((Constructor<?>) member).getDeclaringClass();
             returnType = wrapPrimitives(returnType);
-            if (!returnType.equals(Void.class)) {
+            if (!returnType.equals(Void.class))
               map.put((TypeVariable<?>) returnTypeVar, returnType);
-            }
           }
 
-          Class<?>[] arguments = methodInfo.getParameterTypes();
+          Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
+              : ((Constructor<?>) member).getParameterTypes();
 
           // Populate object type from arbitrary object method reference
           int paramOffset = 0;
           if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
-                  && paramTypeVars.length == arguments.length + 1) {
-            Class<?> instanceType = methodInfo.getDeclaringClass();
+              && paramTypeVars.length == arguments.length + 1) {
+            Class<?> instanceType = member.getDeclaringClass();
             map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
             paramOffset = 1;
           }
@@ -412,10 +424,8 @@ public final class TypeResolver {
 
           // Populate type arguments
           for (int i = 0; i + argOffset < arguments.length; i++) {
-            if (paramTypeVars[i] instanceof TypeVariable) {
-              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset],
-                      wrapPrimitives(arguments[i + argOffset]));
-            }
+            if (paramTypeVars[i] instanceof TypeVariable)
+              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], wrapPrimitives(arguments[i + argOffset]));
           }
 
           return;
@@ -428,27 +438,28 @@ public final class TypeResolver {
     return javaVersion >= 1.8 && m.isDefault();
   }
 
-  private static Method getMethodRef(ConstantPool constantPool, Class<?> type) {
-    Method returnValue = null;
-
+  private static Member getMemberRef(ConstantPool constantPool, Class<?> type) {
+    Member result = null;
     for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
         Member member = constantPool.getMethodAt(i);
-        //skip constructors and members of the "type" class
-        if (member instanceof Constructor || member.getDeclaringClass().isAssignableFrom(type)) {
+        // Skip SerializedLambda constructors and members of the "type" class
+        if ((member instanceof Constructor
+            && ((Constructor<?>) member).getDeclaringClass().equals(java.lang.invoke.SerializedLambda.class))
+            || member.getDeclaringClass().isAssignableFrom(type))
           continue;
-        }
-        returnValue = (Method) member;
+
+        result = member;
+
         // If we found a method named valueOf, keep searching for other methods but still return
         // the information for the valueOf method in case it turns out to be the only valid method.
-        if (!returnValue.getName().equals("valueOf")) {
+        if (!(member instanceof Method) || !member.getName().equals("valueOf"))
           break;
-        }
       } catch (IllegalArgumentException ignore) {
       }
     }
 
-    return returnValue;
+    return result;
   }
 
   private static final Map<Class<?>, Class<?>> primitives;
