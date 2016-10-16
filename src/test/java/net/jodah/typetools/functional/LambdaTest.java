@@ -182,9 +182,9 @@ public class LambdaTest extends AbstractTypeResolverTest {
    */
   @Test(enabled = false)
   public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
-    I1<String, Integer> fn = Baz::convert;
-    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    BiFunction<String, Boolean, Integer> fn1 = Baz::convert;
+    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, fn1.getClass()),
+        new Class<?>[] { String.class, Boolean.class, Integer.class });
   }
 
   /**
