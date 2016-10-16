@@ -180,7 +180,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
    * Note: disabled since method signature exposed via constant pool contains convert(String, Object). Subsequent
    * bytecode contains convert(String, String). May need ASM to read.
    */
-  @Test
+  @Test(enabled = false)
   public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
     I1<String, Integer> fn = Baz::convert;
     assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()),
