@@ -458,7 +458,7 @@ public final class TypeResolver {
         Member member = constantPool.getMethodAt(i);
         // Skip SerializedLambda constructors and members of the "type" class
         if ((member instanceof Constructor
-            && ((Constructor<?>) member).getDeclaringClass().equals(java.lang.invoke.SerializedLambda.class))
+            && ((Constructor<?>) member).getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
             || member.getDeclaringClass().isAssignableFrom(type))
           continue;
 
