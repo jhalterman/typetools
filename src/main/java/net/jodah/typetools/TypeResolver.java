@@ -246,8 +246,8 @@ public final class TypeResolver {
       return resolveRawClass(((ParameterizedType) genericType).getRawType(), subType, functionalInterface);
     } else if (genericType instanceof GenericArrayType) {
       GenericArrayType arrayType = (GenericArrayType) genericType;
-      Class<?> compoment = resolveRawClass(arrayType.getGenericComponentType(), subType, functionalInterface);
-      return Array.newInstance(compoment, 0).getClass();
+      Class<?> component = resolveRawClass(arrayType.getGenericComponentType(), subType, functionalInterface);
+      return Array.newInstance(component, 0).getClass();
     } else if (genericType instanceof TypeVariable) {
       TypeVariable<?> variable = (TypeVariable<?>) genericType;
       genericType = getTypeVariableMap(subType, functionalInterface).get(variable);
@@ -458,20 +458,26 @@ public final class TypeResolver {
         Member member = constantPool.getMethodAt(i);
         // Skip SerializedLambda constructors and members of the "type" class
         if ((member instanceof Constructor
-            && ((Constructor<?>) member).getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+            && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
             || member.getDeclaringClass().isAssignableFrom(type))
           continue;
 
         result = member;
 
         // Return if not valueOf method
-        if (!(member instanceof Method) || !member.getName().equals("valueOf"))
+        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
           break;
       } catch (IllegalArgumentException ignore) {
       }
     }
 
     return result;
+  }
+
+  private static boolean isAutoBoxingMethod(Method method) {
+    Class<?>[] parameters = method.getParameterTypes();
+    return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
+        && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
   }
 
   private static Class<?> wrapPrimitives(Class<?> clazz) {

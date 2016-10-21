@@ -1,4 +1,4 @@
-To activate 1.6 source compatibility, releaes should be performed with the -Drelease argument:
+To activate 1.6 source compatibility, release should be performed with the -Drelease argument:
 
 mvn release:prepare -Drelease
 mvn release:perform -Drelease
