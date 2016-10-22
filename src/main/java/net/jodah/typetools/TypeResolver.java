@@ -399,14 +399,9 @@ public final class TypeResolver {
           Type returnTypeVar = m.getGenericReturnType();
           Type[] paramTypeVars = m.getGenericParameterTypes();
 
-          Member member;
-          try {
-            member = getMemberRef((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType), lambdaType);
-            if (member == null)
-              return;
-          } catch (Exception ignore) {
+          Member member = getMemberRef(lambdaType);
+          if (member == null)
             return;
-          }
 
           // Populate return type argument
           if (returnTypeVar instanceof TypeVariable) {
@@ -451,7 +446,14 @@ public final class TypeResolver {
     return JAVA_VERSION >= 1.8 && m.isDefault();
   }
 
-  private static Member getMemberRef(ConstantPool constantPool, Class<?> type) {
+  private static Member getMemberRef(Class<?> type) {
+    ConstantPool constantPool;
+    try {
+      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(type);
+    } catch (Exception ignore) {
+      return null;
+    }
+
     Member result = null;
     for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
