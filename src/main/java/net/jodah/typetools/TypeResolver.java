@@ -246,8 +246,8 @@ public final class TypeResolver {
       return resolveRawClass(((ParameterizedType) genericType).getRawType(), subType, functionalInterface);
     } else if (genericType instanceof GenericArrayType) {
       GenericArrayType arrayType = (GenericArrayType) genericType;
-      Class<?> compoment = resolveRawClass(arrayType.getGenericComponentType(), subType, functionalInterface);
-      return Array.newInstance(compoment, 0).getClass();
+      Class<?> component = resolveRawClass(arrayType.getGenericComponentType(), subType, functionalInterface);
+      return Array.newInstance(component, 0).getClass();
     } else if (genericType instanceof TypeVariable) {
       TypeVariable<?> variable = (TypeVariable<?>) genericType;
       genericType = getTypeVariableMap(subType, functionalInterface).get(variable);
@@ -399,14 +399,9 @@ public final class TypeResolver {
           Type returnTypeVar = m.getGenericReturnType();
           Type[] paramTypeVars = m.getGenericParameterTypes();
 
-          Member member;
-          try {
-            member = getMemberRef((ConstantPool) GET_CONSTANT_POOL.invoke(lambdaType), lambdaType);
-            if (member == null)
-              return;
-          } catch (Exception ignore) {
+          Member member = getMemberRef(lambdaType);
+          if (member == null)
             return;
-          }
 
           // Populate return type argument
           if (returnTypeVar instanceof TypeVariable) {
@@ -451,27 +446,40 @@ public final class TypeResolver {
     return JAVA_VERSION >= 1.8 && m.isDefault();
   }
 
-  private static Member getMemberRef(ConstantPool constantPool, Class<?> type) {
+  private static Member getMemberRef(Class<?> type) {
+    ConstantPool constantPool;
+    try {
+      constantPool = (ConstantPool) GET_CONSTANT_POOL.invoke(type);
+    } catch (Exception ignore) {
+      return null;
+    }
+
     Member result = null;
     for (int i = constantPool.getSize() - 1; i >= 0; i--) {
       try {
         Member member = constantPool.getMethodAt(i);
         // Skip SerializedLambda constructors and members of the "type" class
         if ((member instanceof Constructor
-            && ((Constructor<?>) member).getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+            && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
             || member.getDeclaringClass().isAssignableFrom(type))
           continue;
 
         result = member;
 
         // Return if not valueOf method
-        if (!(member instanceof Method) || !member.getName().equals("valueOf"))
+        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
           break;
       } catch (IllegalArgumentException ignore) {
       }
     }
 
     return result;
+  }
+
+  private static boolean isAutoBoxingMethod(Method method) {
+    Class<?>[] parameters = method.getParameterTypes();
+    return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
+        && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
   }
 
   private static Class<?> wrapPrimitives(Class<?> clazz) {
