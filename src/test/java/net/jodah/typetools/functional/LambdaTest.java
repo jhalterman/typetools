@@ -264,13 +264,16 @@ public class LambdaTest extends AbstractTypeResolverTest {
         new Class<?>[] { String.class, Integer.class });
   }
 
-  @Test(enabled = false)
-  // fixing this will break stability when run with retrolambda + jacoco
-  // broken by constructor reference support
   public void shouldResolveObjectClassMethodRef() {
     Function<?, String> fn = Object::toString;
     assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
         new Class<?>[] { Object.class, String.class });
+  }
+
+  public void shouldResolveObjectClassConstructorRef() {
+    Supplier<?> fn = Object::new;
+    assertEquals(TypeResolver.resolveRawArguments(Supplier.class, fn.getClass()),
+        new Class<?>[] { Object.class });
   }
 
   public void shouldResolvePrimitiveReturnValue() {

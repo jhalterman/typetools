@@ -461,7 +461,7 @@ public final class TypeResolver {
         // Skip SerializedLambda constructors and members of the "type" class
         if ((member instanceof Constructor
             && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-            || member.getDeclaringClass().isAssignableFrom(type))
+            || member.getDeclaringClass().equals(type))
           continue;
 
         result = member;
