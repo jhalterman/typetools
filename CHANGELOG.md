@@ -1,3 +1,9 @@
+# 0.4.9
+
+## Improvements
+
+* Added support for resolving constructor references
+
 # 0.4.8
 
 ### Improvements
