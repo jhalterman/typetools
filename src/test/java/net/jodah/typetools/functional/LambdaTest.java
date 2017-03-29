@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 
 import org.testng.annotations.Factory;
 import org.testng.annotations.Test;
@@ -97,6 +98,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
     int hashCode();
 
     boolean equals(Object other);
+
+    String toString();
   }
 
   /**
@@ -255,11 +258,28 @@ public class LambdaTest extends AbstractTypeResolverTest {
         new Class<?>[] { String.class, Integer.class });
   }
 
-  @Test
   public void shouldResolveSubclassArgumentsForConstructorRef() {
     FnSubclass<String, Integer> fn = Integer::new;
     assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
         new Class<?>[] { String.class, Integer.class });
+  }
+
+  public void shouldResolveObjectClassMethodRef() {
+    Function<?, String> fn = Object::toString;
+    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
+        new Class<?>[] { Object.class, String.class });
+  }
+
+  public void shouldResolveObjectClassConstructorRef() {
+    Supplier<?> fn = Object::new;
+    assertEquals(TypeResolver.resolveRawArguments(Supplier.class, fn.getClass()),
+        new Class<?>[] { Object.class });
+  }
+
+  public void shouldResolvePrimitiveReturnValue() {
+    ToDoubleFunction<String> fn = Double::valueOf; //this method returns Integer, thus unboxing takes place
+    assertEquals(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass()),
+        new Class<?>[] { String.class });
   }
 
   public void shouldResolveTransposedSubclassArguments() {

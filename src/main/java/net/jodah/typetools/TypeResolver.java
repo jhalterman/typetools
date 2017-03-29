@@ -461,13 +461,13 @@ public final class TypeResolver {
         // Skip SerializedLambda constructors and members of the "type" class
         if ((member instanceof Constructor
             && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-            || member.getDeclaringClass().isAssignableFrom(type))
+            || member.getDeclaringClass().equals(type))
           continue;
 
         result = member;
 
         // Return if not valueOf method
-        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
+        if (!(member instanceof Method) || !isBoxingOrUnboxingMethod((Method) member))
           break;
       } catch (IllegalArgumentException ignore) {
       }
@@ -476,10 +476,25 @@ public final class TypeResolver {
     return result;
   }
 
-  private static boolean isAutoBoxingMethod(Method method) {
+  private static boolean isBoxingOrUnboxingMethod(Method method) {
+    return isBoxingMethod(method) || isUnboxingMethod(method);
+  }
+
+  private static boolean isBoxingMethod(Method method) {
     Class<?>[] parameters = method.getParameterTypes();
     return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
         && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
+  }
+
+  private static boolean isUnboxingMethod(Method method) {
+    String methodName = method.getName();
+    String returnType = method.getReturnType().getSimpleName();
+    Class<?>[] parameters = method.getParameterTypes();
+
+    return method.getReturnType().isPrimitive() && parameters.length == 0
+        //booleanValue, byteValue, charValue, doubleValue, floatValue, intValue, longValue, shortValue
+        && methodName.startsWith(returnType) && methodName.endsWith("Value")
+        && wrapPrimitives(method.getReturnType()).equals(method.getDeclaringClass());
   }
 
   private static Class<?> wrapPrimitives(Class<?> clazz) {
