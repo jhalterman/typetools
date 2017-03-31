@@ -97,6 +97,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
     int hashCode();
 
     boolean equals(Object other);
+
+    String toString();
   }
 
   /**
@@ -255,7 +257,6 @@ public class LambdaTest extends AbstractTypeResolverTest {
         new Class<?>[] { String.class, Integer.class });
   }
 
-  @Test
   public void shouldResolveSubclassArgumentsForConstructorRef() {
     FnSubclass<String, Integer> fn = Integer::new;
     assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
