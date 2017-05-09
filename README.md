@@ -121,8 +121,8 @@ TypeResolver.disableCache();
 
 Lambda type argument resolution is currently supported for:
 
-* Oracle JDK 8
-* Open JDK 8
+* Oracle JDK 8, 9
+* Open JDK 8, 9
 
 #### On Unresolvable Lambda Type Arguments
 
