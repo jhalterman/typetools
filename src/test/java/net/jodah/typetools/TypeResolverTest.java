@@ -3,11 +3,14 @@ package net.jodah.typetools;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+import java.io.Closeable;
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,10 +89,51 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertEquals(TypeResolver.resolveRawArgument(List.class, SomeList.class), Integer.class);
   }
 
+  public void shouldResolveTypeForList() {
+    Type resolvedType = TypeResolver.reify(List.class, SomeList.class);
+    assert resolvedType instanceof ParameterizedType;
+    assertEquals(((ParameterizedType) resolvedType).getActualTypeArguments()[0], Integer.class);
+  }
+
   public void shouldResolveArgumentsForBazFromFoo() {
     Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Baz.class, Foo.class);
     assert typeArguments[0] == HashSet.class;
     assert typeArguments[1] == ArrayList.class;
+  }
+
+  public void shouldResolveParameterizedTypeForBazFromFoo() {
+    Type type = TypeResolver.reify(Baz.class, Foo.class);
+
+    // Now we walk the type hierarchy:
+    assert type instanceof ParameterizedType;
+    Type[] typeArguments = ((ParameterizedType) type).getActualTypeArguments();
+
+    assert typeArguments[0] instanceof ParameterizedType;
+    ParameterizedType firstTypeArgument = (ParameterizedType) typeArguments[0];
+    assert firstTypeArgument.getRawType() == HashSet.class;
+    assert firstTypeArgument.getActualTypeArguments()[0] == Object.class;
+
+    assert typeArguments[1] instanceof ParameterizedType;
+    ParameterizedType secondTypeArgument = (ParameterizedType) typeArguments[1];
+    assert secondTypeArgument.getRawType() == ArrayList.class;
+    assert secondTypeArgument.getActualTypeArguments()[0] == Object.class;
+  }
+
+  public void shouldResolvePartialParameterizedTypeForBazFromBar() {
+    Type type = TypeResolver.reify(Baz.class, Bar.class);
+
+    assert type instanceof ParameterizedType;
+    Type[] typeArguments = ((ParameterizedType) type).getActualTypeArguments();
+
+    assert typeArguments[0] instanceof ParameterizedType;
+    ParameterizedType firstTypeArgument = (ParameterizedType) typeArguments[0];
+    assert firstTypeArgument.getRawType() == HashSet.class;
+    assert firstTypeArgument.getActualTypeArguments()[0] == Object.class;
+
+    assert typeArguments[1] instanceof ParameterizedType;
+    ParameterizedType secondTypeArgument = (ParameterizedType) typeArguments[1];
+    assert secondTypeArgument.getRawType() == List.class;
+    assert secondTypeArgument.getActualTypeArguments()[0] == Object.class;
   }
 
   public void shouldResolveArgumentsForIRepoFromRepoImplA() {
@@ -155,11 +199,74 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   static class TypeArrayImpl extends TypeArrayFixture<String> {
   }
 
-  public void shouldResolveGenericTypeArray() throws Throwable {
+  static class TypeArrayNonClassImpl extends TypeArrayFixture<Closeable> {
+  }
+
+  static class TypeListFixture<T> {
+    List<T> testList;
+
+    T testPlain;
+
+    public void testMethod(List<? super T> arg) {
+    }
+  }
+
+  static class TypeListImpl extends TypeListFixture<String> {
+  }
+
+  static abstract class GenericMethodHolder {
+    public abstract <T extends Number> T genericMethod();
+  }
+
+  public void shouldResolveGenericClassTypeArray() throws Throwable {
     Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
 
     Class<?> arg = TypeResolver.resolveRawClass(arrayField, TypeArrayImpl.class);
     assertEquals(arg, String[].class);
+  }
+
+  public void shouldReifyGenericArrayTypeWithInterface() throws Throwable {
+    Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
+
+    Type arg = TypeResolver.reify(arrayField, TypeArrayNonClassImpl.class);
+    assertEquals(arg, Closeable[].class);
+  }
+
+  public void shouldResolveRawTypeList() throws Throwable {
+    Type listField = TypeListFixture.class.getDeclaredField("testList").getGenericType();
+
+    Class<?> arg = TypeResolver.resolveRawClass(listField, TypeListImpl.class);
+    assertEquals(arg, List.class);
+  }
+
+  public void shouldReifyGenericArrayTypeWithClass() throws Throwable {
+    Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
+
+    Type arg = TypeResolver.reify(arrayField, TypeArrayImpl.class);
+    assertEquals(arg, String[].class);
+  }
+
+  public void shouldReifyList() throws Throwable {
+    Type listField = TypeListFixture.class.getDeclaredField("testList").getGenericType();
+
+    Type arg = TypeResolver.reify(listField, TypeListImpl.class);
+    assert arg instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) arg;
+    assertEquals(parameterizedType.getRawType(), List.class);
+    assertEquals(parameterizedType.getActualTypeArguments()[0], String.class);
+  }
+
+  public void shouldReifyTypeVariable() throws Throwable {
+    Type plainField  = TypeListFixture.class.getDeclaredField("testPlain").getGenericType();
+
+    Type arg = TypeResolver.reify(plainField, TypeListImpl.class);
+    assert arg == String.class;
+  }
+
+  public void shouldReifyWildcardFromGenericMethod() throws Exception {
+    Type type = TypeResolver.reify(
+        GenericMethodHolder.class.getMethod("genericMethod").getGenericReturnType());
+    assert type == Number.class;
   }
 
   public void shouldReturnNullOnResolveArgumentsForNonParameterizedType() {
@@ -170,10 +277,67 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertEquals(TypeResolver.resolveRawArgument(Object.class, String.class), Unknown.class);
   }
 
+  private static abstract class WildcardWithBoundFixture {
+    public abstract List<? extends Number> getNumberList();
+    public abstract List<? extends Collection<List<? extends Number>>> collect();
+  }
+
+  public void shouldReifyWildcardToUpperBound() throws Exception {
+    Type type = TypeResolver.reify(
+        WildcardWithBoundFixture.class.getMethod("getNumberList").getGenericReturnType(),
+        WildcardWithBoundFixture.class
+    );
+
+    assert type instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) type;
+    assert parameterizedType.getRawType() == List.class;
+    assert parameterizedType.getActualTypeArguments()[0] == Number.class;
+  }
+
+  public void shouldReifyWildcardWithComplexUpperBound() throws Exception {
+    Type type = TypeResolver.reify(
+        WildcardWithBoundFixture.class.getMethod("collect").getGenericReturnType(),
+        WildcardWithBoundFixture.class
+    );
+
+    assertEquals(type.toString(), "java.util.List<java.util.Collection<java.util.List<java.lang.Number>>>");
+
+    assert type instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) type;
+    assert parameterizedType.getRawType() == List.class;
+
+    assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
+    parameterizedType = (ParameterizedType) parameterizedType.getActualTypeArguments()[0];
+
+    assert parameterizedType.getRawType() == Collection.class;
+
+    assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
+    parameterizedType = (ParameterizedType) parameterizedType.getActualTypeArguments()[0];
+
+    assert parameterizedType.getRawType() == List.class;
+    assert parameterizedType.getActualTypeArguments()[0] == Number.class;
+  }
+
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void shouldThrowOnResolveArgumentForTypeWithMultipleArguments() {
     TypeResolver.resolveRawArgument(Map.class, new HashMap<String, String>() {
     }.getClass());
+  }
+
+  @Test(expectedExceptions = UnsupportedOperationException.class)
+  public void shouldThrowOnReifyForUnknownImplementation() {
+    TypeResolver.reify(new Type() {
+      @Override
+      public String getTypeName() {
+        return "unknown";
+      }
+    }, Bar.class);
+  }
+
+  @Test(expectedExceptions = UnsupportedOperationException.class)
+  public void shouldThrowOnReifyForNontrivialBounds() throws Exception {
+    Type toResolve = TypeListImpl.class.getMethod("testMethod", List.class).getGenericParameterTypes()[0];
+    TypeResolver.reify(toResolve, TypeListImpl.class);
   }
 
   public void shouldResolveTypeParamFromAnonymousClass() {
