@@ -60,7 +60,7 @@ Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator.class, comparator.
 assert typeArg == String.class;
 ```
 
-We can [reify] more complex generic type paramters:
+We can [reify] more complex generic type parameters:
 
 ```java
 interface Foo<T> {}
