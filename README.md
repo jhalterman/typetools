@@ -8,12 +8,16 @@ A simple, zero-dependency library for working with types. Supports Java 1.6+ and
 
 ## Introduction
 
-One of the sore points with Java involves working with type information. In particular, Java's generics do not provide a way to resolve the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface, lambda expression or method.
+One of the sore points with Java involves working with type information. In particular, Java's generics do not provide a way to resolve or reify the type information for a given class. TypeTools looks to solve this by fully resolving generic type information declared on any class, interface, lambda expression or method.
 
 ## Usage
 
-The [TypeResolver](http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html) class provides the following methods:
+The [TypeResolver](http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html) class provides some of the following methods:
 
+* `Type reify(Type type, Class<S> context)`
+<br>Returns a fully reified `type` using type variable information from the `context`.
+* `Type reify(Type genericType)`
+<br>Returns a fully reified `genericType` using information from the generic declaration.
 * `Class<?>[] resolveRawArguments(Class<T> type, Class<S> subType)`
 <br>Resolves the raw arguments for a `type` using type variable information from a `subType`.
 * `Class<?> resolveRawArgument(Class<T> type, Class<S> subType)`
@@ -25,7 +29,7 @@ The [TypeResolver](http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeRe
 
 ## Examples
 
-A typical use case is to resolve arguments for a type, given a sub-type:
+A typical use case is to [resolve arguments][resolve-raw-args] for a type, given a sub-type:
 
 ```java
 interface Foo<T1, T2> {}
@@ -56,6 +60,23 @@ Class<?> typeArg = TypeResolver.resolveRawArgument(Comparator.class, comparator.
 assert typeArg == String.class;
 ```
 
+We can [reify] more complex generic type paramters:
+
+```java
+interface Foo<T> {}
+class Bar implements Foo<List<Integer>> {}
+
+Type typeArgs = TypeResolver.reify(Foo.class, bar.class);
+
+ParameterizedType paramType = (ParameterizedType) typeArgs;
+Type[] actualTypeArgs = paramType.getActualTypeArguments();
+ParameterizedType arg = (ParameterizedType)actualTypeArgs[0];
+
+assert paramType.getRawType() == Foo.class;
+assert arg1.getRawType() == List.class;
+assert arg1.getActualTypeArguments()[0] == Integer.class;
+```
+
 We can also resolve the raw class for type parameters on fields and methods:
 
 ```java
@@ -72,6 +93,8 @@ Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).g
 assert TypeResolver.resolveRawClass(fieldType, SomeEntity.class) == Long.class;
 assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class;
 ```
+
+And we can [reify generic type][reify-generic] parameters from fields or methods.
 
 ## Common Use Cases
 
@@ -154,4 +177,8 @@ JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
 
 ## License
 
-Copyright 2010-2016 Jonathan Halterman - Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright 2010-2019 Jonathan Halterman and friends. Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+
+[resolve-raw-args]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.Class-java.lang.Class-
+[reify]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#reify-java.lang.Class-java.lang.Class-
+[reify-generic]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#reify-java.lang.reflect.Type-

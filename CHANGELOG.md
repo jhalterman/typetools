@@ -1,3 +1,7 @@
+# 0.6.0
+
+* Added support for reifying generics
+
 # 0.5.0
 
 ### Improvements
