@@ -18,7 +18,7 @@
     catch(err) {
     }
 //-->
-var methods = {"i0":9,"i1":9,"i2":9,"i3":9,"i4":9,"i5":9,"i6":9,"i7":9,"i8":9};
+var methods = {"i0":9,"i1":9,"i2":9,"i3":9,"i4":9,"i5":9,"i6":9,"i7":9,"i8":9,"i9":9,"i10":9,"i11":9};
 var tabs = {65535:["t0","All Methods"],1:["t1","Static Methods"],8:["t4","Concrete Methods"]};
 var altColor = "altColor";
 var rowColor = "rowColor";
@@ -96,7 +96,7 @@ var activeTableTab = "activeTableTab";
 </div>
 <div class="contentContainer">
 <ul class="inheritance">
-<li><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">java.lang.Object</a></li>
+<li>java.lang.Object</li>
 <li>
 <ul class="inheritance">
 <li>net.jodah.typetools.TypeResolver</li>
@@ -109,7 +109,7 @@ var activeTableTab = "activeTableTab";
 <hr>
 <br>
 <pre>public final class <span class="typeNameLabel">TypeResolver</span>
-extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></pre>
+extends java.lang.Object</pre>
 <div class="block">Enhanced type resolution utilities.</div>
 </li>
 </ul>
@@ -163,55 +163,77 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 </td>
 </tr>
 <tr id="i2" class="altColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveBound-java.lang.reflect.TypeVariable-">resolveBound</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/TypeVariable.html?is-external=true" title="class or interface in java.lang.reflect">TypeVariable</a>&lt;?&gt;&nbsp;typeVariable)</code>
-<div class="block">Resolves the first bound for the <code>typeVariable</code>, returning <code>Unknown.class</code> if none can be resolved.</div>
+<td class="colFirst"><code>static &lt;T,S extends T&gt;<br>java.lang.reflect.Type</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#reify-java.lang.Class-java.lang.Class-">reify</a></span>(java.lang.Class&lt;T&gt;&nbsp;type,
+     java.lang.Class&lt;S&gt;&nbsp;context)</code>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
+ by using the type information from given <code>context</code>.</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a></code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveGenericType-java.lang.Class-java.lang.reflect.Type-">resolveGenericType</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;type,
-                  <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;subType)</code>
+<td class="colFirst"><code>static java.lang.reflect.Type</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#reify-java.lang.reflect.Type-">reify</a></span>(java.lang.reflect.Type&nbsp;type)</code>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible).</div>
+</td>
+</tr>
+<tr id="i4" class="altColor">
+<td class="colFirst"><code>static java.lang.reflect.Type</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#reify-java.lang.reflect.Type-java.lang.Class-">reify</a></span>(java.lang.reflect.Type&nbsp;type,
+     java.lang.Class&lt;?&gt;&nbsp;context)</code>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
+ by using the type information from given <code>context</code>.</div>
+</td>
+</tr>
+<tr id="i5" class="rowColor">
+<td class="colFirst"><code>static java.lang.reflect.Type</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveBound-java.lang.reflect.TypeVariable-">resolveBound</a></span>(java.lang.reflect.TypeVariable&lt;?&gt;&nbsp;typeVariable)</code>
+<div class="block">Resolves the first bound for the <code>typeVariable</code>, returning <code>Unknown.class</code> if none can be resolved.</div>
+</td>
+</tr>
+<tr id="i6" class="altColor">
+<td class="colFirst"><code>static java.lang.reflect.Type</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveGenericType-java.lang.Class-java.lang.reflect.Type-">resolveGenericType</a></span>(java.lang.Class&lt;?&gt;&nbsp;type,
+                  java.lang.reflect.Type&nbsp;subType)</code>
 <div class="block">Returns the generic <code>type</code> using type variable information from the <code>subType</code> else <code>null</code> if the
  generic type cannot be resolved.</div>
 </td>
 </tr>
-<tr id="i4" class="altColor">
-<td class="colFirst"><code>static &lt;T,S extends T&gt;<br><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArgument-java.lang.Class-java.lang.Class-">resolveRawArgument</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;T&gt;&nbsp;type,
-                  <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;S&gt;&nbsp;subType)</code>
+<tr id="i7" class="rowColor">
+<td class="colFirst"><code>static &lt;T,S extends T&gt;<br>java.lang.Class&lt;?&gt;</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArgument-java.lang.Class-java.lang.Class-">resolveRawArgument</a></span>(java.lang.Class&lt;T&gt;&nbsp;type,
+                  java.lang.Class&lt;S&gt;&nbsp;subType)</code>
 <div class="block">Returns the raw class representing the argument for the <code>type</code> using type variable information from the
  <code>subType</code>.</div>
 </td>
 </tr>
-<tr id="i5" class="rowColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArgument-java.lang.reflect.Type-java.lang.Class-">resolveRawArgument</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-                  <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</code>
+<tr id="i8" class="altColor">
+<td class="colFirst"><code>static java.lang.Class&lt;?&gt;</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArgument-java.lang.reflect.Type-java.lang.Class-">resolveRawArgument</a></span>(java.lang.reflect.Type&nbsp;genericType,
+                  java.lang.Class&lt;?&gt;&nbsp;subType)</code>
 <div class="block">Returns the raw class representing the argument for the <code>genericType</code> using type variable information from
  the <code>subType</code>.</div>
 </td>
 </tr>
-<tr id="i6" class="altColor">
-<td class="colFirst"><code>static &lt;T,S extends T&gt;<br><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;[]</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.Class-java.lang.Class-">resolveRawArguments</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;T&gt;&nbsp;type,
-                   <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;S&gt;&nbsp;subType)</code>
+<tr id="i9" class="rowColor">
+<td class="colFirst"><code>static &lt;T,S extends T&gt;<br>java.lang.Class&lt;?&gt;[]</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.Class-java.lang.Class-">resolveRawArguments</a></span>(java.lang.Class&lt;T&gt;&nbsp;type,
+                   java.lang.Class&lt;S&gt;&nbsp;subType)</code>
 <div class="block">Returns an array of raw classes representing arguments for the <code>type</code> using type variable information from
  the <code>subType</code>.</div>
 </td>
 </tr>
-<tr id="i7" class="rowColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;[]</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.reflect.Type-java.lang.Class-">resolveRawArguments</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-                   <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</code>
+<tr id="i10" class="altColor">
+<td class="colFirst"><code>static java.lang.Class&lt;?&gt;[]</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.reflect.Type-java.lang.Class-">resolveRawArguments</a></span>(java.lang.reflect.Type&nbsp;genericType,
+                   java.lang.Class&lt;?&gt;&nbsp;subType)</code>
 <div class="block">Returns an array of raw classes representing arguments for the <code>genericType</code> using type variable information
  from the <code>subType</code>.</div>
 </td>
 </tr>
-<tr id="i8" class="altColor">
-<td class="colFirst"><code>static <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;</code></td>
-<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawClass-java.lang.reflect.Type-java.lang.Class-">resolveRawClass</a></span>(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-               <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</code>
+<tr id="i11" class="rowColor">
+<td class="colFirst"><code>static java.lang.Class&lt;?&gt;</code></td>
+<td class="colLast"><code><span class="memberNameLink"><a href="../../../net/jodah/typetools/TypeResolver.html#resolveRawClass-java.lang.reflect.Type-java.lang.Class-">resolveRawClass</a></span>(java.lang.reflect.Type&nbsp;genericType,
+               java.lang.Class&lt;?&gt;&nbsp;subType)</code>
 <div class="block">Resolves the raw class for the <code>genericType</code>, using the type variable information from the <code>subType</code>
  else <a href="../../../net/jodah/typetools/TypeResolver.Unknown.html" title="class in net.jodah.typetools"><code>TypeResolver.Unknown</code></a> if the raw class cannot be resolved.</div>
 </td>
@@ -221,8 +243,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <li class="blockList"><a name="methods.inherited.from.class.java.lang.Object">
 <!--   -->
 </a>
-<h3>Methods inherited from class&nbsp;java.lang.<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true" title="class or interface in java.lang">Object</a></h3>
-<code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#equals-java.lang.Object-" title="class or interface in java.lang">equals</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#getClass--" title="class or interface in java.lang">getClass</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#hashCode--" title="class or interface in java.lang">hashCode</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notify--" title="class or interface in java.lang">notify</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#notifyAll--" title="class or interface in java.lang">notifyAll</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#toString--" title="class or interface in java.lang">toString</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait--" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-" title="class or interface in java.lang">wait</a>, <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?is-external=true#wait-long-int-" title="class or interface in java.lang">wait</a></code></li>
+<h3>Methods inherited from class&nbsp;java.lang.Object</h3>
+<code>equals, getClass, hashCode, notify, notifyAll, toString, wait, wait, wait</code></li>
 </ul>
 </li>
 </ul>
@@ -264,8 +286,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveRawArgument</h4>
-<pre>public static&nbsp;&lt;T,S extends T&gt;&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;resolveRawArgument(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;T&gt;&nbsp;type,
-                                                          <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;S&gt;&nbsp;subType)</pre>
+<pre>public static&nbsp;&lt;T,S extends T&gt;&nbsp;java.lang.Class&lt;?&gt;&nbsp;resolveRawArgument(java.lang.Class&lt;T&gt;&nbsp;type,
+                                                                    java.lang.Class&lt;S&gt;&nbsp;subType)</pre>
 <div class="block">Returns the raw class representing the argument for the <code>type</code> using type variable information from the
  <code>subType</code>. If no arguments can be resolved then <code>Unknown.class</code> is returned.</div>
 <dl>
@@ -275,7 +297,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>argument for <code>type</code> else <a href="../../../net/jodah/typetools/TypeResolver.Unknown.html" title="class in net.jodah.typetools"><code>TypeResolver.Unknown</code></a>.class if no type arguments are declared</dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/IllegalArgumentException.html?is-external=true" title="class or interface in java.lang">IllegalArgumentException</a></code> - if more or less than one argument is resolved for the <code>type</code></dd>
+<dd><code>java.lang.IllegalArgumentException</code> - if more or less than one argument is resolved for the <code>type</code></dd>
 </dl>
 </li>
 </ul>
@@ -285,8 +307,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveRawArgument</h4>
-<pre>public static&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;resolveRawArgument(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-                                          <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</pre>
+<pre>public static&nbsp;java.lang.Class&lt;?&gt;&nbsp;resolveRawArgument(java.lang.reflect.Type&nbsp;genericType,
+                                                    java.lang.Class&lt;?&gt;&nbsp;subType)</pre>
 <div class="block">Returns the raw class representing the argument for the <code>genericType</code> using type variable information from
  the <code>subType</code>. If <code>genericType</code> is an instance of class, then <code>genericType</code> is returned. If no
  arguments can be resolved then <code>Unknown.class</code> is returned.</div>
@@ -297,7 +319,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <dt><span class="returnLabel">Returns:</span></dt>
 <dd>argument for <code>genericType</code> else <a href="../../../net/jodah/typetools/TypeResolver.Unknown.html" title="class in net.jodah.typetools"><code>TypeResolver.Unknown</code></a>.class if no type arguments are declared</dd>
 <dt><span class="throwsLabel">Throws:</span></dt>
-<dd><code><a href="http://docs.oracle.com/javase/8/docs/api/java/lang/IllegalArgumentException.html?is-external=true" title="class or interface in java.lang">IllegalArgumentException</a></code> - if more or less than one argument is resolved for the <code>genericType</code></dd>
+<dd><code>java.lang.IllegalArgumentException</code> - if more or less than one argument is resolved for the <code>genericType</code></dd>
 </dl>
 </li>
 </ul>
@@ -307,8 +329,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveRawArguments</h4>
-<pre>public static&nbsp;&lt;T,S extends T&gt;&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;[]&nbsp;resolveRawArguments(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;T&gt;&nbsp;type,
-                                                             <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;S&gt;&nbsp;subType)</pre>
+<pre>public static&nbsp;&lt;T,S extends T&gt;&nbsp;java.lang.Class&lt;?&gt;[]&nbsp;resolveRawArguments(java.lang.Class&lt;T&gt;&nbsp;type,
+                                                                       java.lang.Class&lt;S&gt;&nbsp;subType)</pre>
 <div class="block">Returns an array of raw classes representing arguments for the <code>type</code> using type variable information from
  the <code>subType</code>. Arguments for <code>type</code> that cannot be resolved are returned as <code>Unknown.class</code>. If
  no arguments can be resolved then <code>null</code> is returned.</div>
@@ -322,14 +344,138 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 </dl>
 </li>
 </ul>
+<a name="reify-java.lang.Class-java.lang.Class-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>reify</h4>
+<pre>public static&nbsp;&lt;T,S extends T&gt;&nbsp;java.lang.reflect.Type&nbsp;reify(java.lang.Class&lt;T&gt;&nbsp;type,
+                                                           java.lang.Class&lt;S&gt;&nbsp;context)</pre>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
+ by using the type information from given <code>context</code>.
+ A convenience method which largely works the same as <a href="../../../net/jodah/typetools/TypeResolver.html#reify-java.lang.reflect.Type-java.lang.Class-"><code>reify(Type, Class)</code></a>, but first resolves the
+ generic type of <code>type</code>.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>type</code> - the class whose generic type to traverse</dd>
+<dd><code>context</code> - the class that serves as starting point to resolve replacements of type variables</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>a type that is structurally the same as <code>type</code>, except that type variables and wildcard types
+         have been replaced with concrete types</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is not an instance of one of
+         the following types: <code>Class</code>, <code>TypeVariable</code>, <code>WildcardType</code>, <code>ParameterizedType</code>,
+         <code>GenericArrayType</code>.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>WildcardType</code> that
+         does not have exactly one upper bound, or does not have no lower bounds.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>GenericArrayType</code>
+         whose generic component type cannot be reified to an instance of <code>Class</code>.</dd>
+</dl>
+</li>
+</ul>
+<a name="reify-java.lang.reflect.Type-java.lang.Class-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>reify</h4>
+<pre>public static&nbsp;java.lang.reflect.Type&nbsp;reify(java.lang.reflect.Type&nbsp;type,
+                                           java.lang.Class&lt;?&gt;&nbsp;context)</pre>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
+ by using the type information from given <code>context</code>.
+
+ Generic types used as input to this method are commonly obtained using reflection, e.g. via
+ <code>Field.getGenericType()</code>, <code>Method.getGenericReturnType()</code>, <code>Method.getGenericParameterTypes()</code>.
+
+ Example:
+ <blockquote><pre><code>
+   class A&lt;T&gt; {
+     public T something;
+     public Optional&lt;List&lt;T&gt;&gt; compute() { ... }
+   }
+
+   class B extends A&lt;Number&gt; {
+     public &lt;? extends Collection&lt;List&lt;?&gt;&gt;&gt; collect() { ... }
+   }
+ </code></pre></blockquote>
+
+ Reifying the generic return type of the method <code>compute</code> with <code>B.class</code> as <code>context</code> will
+ yield the parameterized type <code>Optional&lt;List&lt;Number&gt;&gt;</code>. Note that not the raw type (<code>Optional</code>
+ is returned, but the input type is reified recursively.
+ Reifying the generic type of the field <code>something</code> with <code>B.class</code> as <code>context</code> will yield
+ <code>Number.class</code>.
+
+ Note that type variables with no explicit upper bound are reified to <code>Object</code>, and <code>Unknown.class</code> is
+ never returned.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>type</code> - the generic type to traverse</dd>
+<dd><code>context</code> - the class that serves as starting point to resolve replacements of type variables</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>a type that is structurally the same as <code>type</code>, except that type variables and wildcard types
+         have been replaced with concrete types</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is not an instance of one of
+         the following types: <code>Class</code>, <code>TypeVariable</code>, <code>WildcardType</code>, <code>ParameterizedType</code>,
+         <code>GenericArrayType</code>.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>WildcardType</code> that
+         does not have exactly one upper bound, or does not have no lower bounds.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>GenericArrayType</code>
+         whose generic component type cannot be reified to an instance of <code>Class</code>.</dd>
+</dl>
+</li>
+</ul>
+<a name="reify-java.lang.reflect.Type-">
+<!--   -->
+</a>
+<ul class="blockList">
+<li class="blockList">
+<h4>reify</h4>
+<pre>public static&nbsp;java.lang.reflect.Type&nbsp;reify(java.lang.reflect.Type&nbsp;type)</pre>
+<div class="block">Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible).
+ A convenience wrapper around <a href="../../../net/jodah/typetools/TypeResolver.html#reify-java.lang.reflect.Type-java.lang.Class-"><code>reify(Type, Class)</code></a>, for when no context is needed/available.
+
+ Generic types used as input to this method are commonly obtained using reflection, e.g. via
+ <code>Field.getGenericType()</code>, <code>Method.getGenericReturnType()</code>, <code>Method.getGenericParameterTypes()</code>.
+
+ Example:
+ <blockquote><pre><code>
+   class X {
+     public List&lt;? extends Collection&lt;List&lt;? extends Number&gt;&gt;&gt; collectList() { ... }
+     public Set&lt;?&gt; collectSet() { ... }
+   }
+ </code></pre></blockquote>
+
+ Reifying the generic return type of the method <code>collectList</code> will yield the parameterized type
+ <code>List&lt;Collection&lt;List&lt;Number&gt;&gt;&gt;</code>.
+ Reifying the generic return type of the method <code>collectSet</code> will yield the parameterized type
+ <code>Set&lt;Object&gt;</code>, since there is no explicit upper bound for the wildcard type given.</div>
+<dl>
+<dt><span class="paramLabel">Parameters:</span></dt>
+<dd><code>type</code> - the generic type to traverse</dd>
+<dt><span class="returnLabel">Returns:</span></dt>
+<dd>a type that is structurally the same as <code>type</code>, except that type variables and wildcard types
+         have been replaced with concrete types</dd>
+<dt><span class="throwsLabel">Throws:</span></dt>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is not an instance of one of
+         the following types: <code>Class</code>, <code>TypeVariable</code>, <code>WildcardType</code>, <code>ParameterizedType</code>,
+         <code>GenericArrayType</code>.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>WildcardType</code> that
+         does not have exactly one upper bound, or does not have no lower bounds.</dd>
+<dd><code>java.lang.UnsupportedOperationException</code> - if <code>type</code> (or a type that it references) is a <code>GenericArrayType</code>
+         whose generic component type cannot be reified to an instance of <code>Class</code>.</dd>
+</dl>
+</li>
+</ul>
 <a name="resolveRawArguments-java.lang.reflect.Type-java.lang.Class-">
 <!--   -->
 </a>
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveRawArguments</h4>
-<pre>public static&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;[]&nbsp;resolveRawArguments(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-                                             <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</pre>
+<pre>public static&nbsp;java.lang.Class&lt;?&gt;[]&nbsp;resolveRawArguments(java.lang.reflect.Type&nbsp;genericType,
+                                                       java.lang.Class&lt;?&gt;&nbsp;subType)</pre>
 <div class="block">Returns an array of raw classes representing arguments for the <code>genericType</code> using type variable information
  from the <code>subType</code>. Arguments for <code>genericType</code> that cannot be resolved are returned as
  <code>Unknown.class</code>. If no arguments can be resolved then <code>null</code> is returned.</div>
@@ -349,8 +495,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveGenericType</h4>
-<pre>public static&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;resolveGenericType(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;type,
-                                      <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;subType)</pre>
+<pre>public static&nbsp;java.lang.reflect.Type&nbsp;resolveGenericType(java.lang.Class&lt;?&gt;&nbsp;type,
+                                                        java.lang.reflect.Type&nbsp;subType)</pre>
 <div class="block">Returns the generic <code>type</code> using type variable information from the <code>subType</code> else <code>null</code> if the
  generic type cannot be resolved.</div>
 <dl>
@@ -368,8 +514,8 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockList">
 <li class="blockList">
 <h4>resolveRawClass</h4>
-<pre>public static&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;resolveRawClass(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;genericType,
-                                       <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Class.html?is-external=true" title="class or interface in java.lang">Class</a>&lt;?&gt;&nbsp;subType)</pre>
+<pre>public static&nbsp;java.lang.Class&lt;?&gt;&nbsp;resolveRawClass(java.lang.reflect.Type&nbsp;genericType,
+                                                 java.lang.Class&lt;?&gt;&nbsp;subType)</pre>
 <div class="block">Resolves the raw class for the <code>genericType</code>, using the type variable information from the <code>subType</code>
  else <a href="../../../net/jodah/typetools/TypeResolver.Unknown.html" title="class in net.jodah.typetools"><code>TypeResolver.Unknown</code></a> if the raw class cannot be resolved.</div>
 <dl>
@@ -387,7 +533,7 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <ul class="blockListLast">
 <li class="blockList">
 <h4>resolveBound</h4>
-<pre>public static&nbsp;<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Type.html?is-external=true" title="class or interface in java.lang.reflect">Type</a>&nbsp;resolveBound(<a href="http://docs.oracle.com/javase/8/docs/api/java/lang/reflect/TypeVariable.html?is-external=true" title="class or interface in java.lang.reflect">TypeVariable</a>&lt;?&gt;&nbsp;typeVariable)</pre>
+<pre>public static&nbsp;java.lang.reflect.Type&nbsp;resolveBound(java.lang.reflect.TypeVariable&lt;?&gt;&nbsp;typeVariable)</pre>
 <div class="block">Resolves the first bound for the <code>typeVariable</code>, returning <code>Unknown.class</code> if none can be resolved.</div>
 </li>
 </ul>
@@ -459,6 +605,6 @@ extends <a href="http://docs.oracle.com/javase/8/docs/api/java/lang/Object.html?
 <!--   -->
 </a></div>
 <!-- ======== END OF BOTTOM NAVBAR ======= -->
-<p class="legalCopy"><small>Copyright &#169; 2017. All Rights Reserved.</small></p>
+<p class="legalCopy"><small>Copyright &#169; 2018. All Rights Reserved.</small></p>
 </body>
 </html>
