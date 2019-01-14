@@ -318,6 +318,63 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assert parameterizedType.getActualTypeArguments()[0] == Number.class;
   }
 
+  static abstract class EnumBound<S extends Enum<S>> {
+  }
+
+  static abstract class SubEnumBound<S extends Enum<S>> extends EnumBound<S>  {
+  }
+
+  static abstract class MutuallyRecursiveBase<T, U> {}
+
+  static abstract class MutuallyRecursive<T extends List<T>, U extends List<T>> extends MutuallyRecursiveBase<T, U> {}
+
+  static abstract class RecursiveOnSecondBase<S, T> {}
+
+  static abstract class RecursiveOnSecond<S, T extends RecursiveOnSecond<S, T>> extends RecursiveOnSecondBase<S, T> {}
+
+  static abstract class RecursiveLongBase<T> {}
+
+  static abstract class RecursiveLong<T extends List<List<T>>> {}
+
+  public void shouldReifyRecursiveBound() {
+    Type result = TypeResolver.reify(EnumBound.class, SubEnumBound.class);
+    assert result instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) result;
+
+    // Navigate into enum parameter.
+    assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
+    parameterizedType = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    // Assert existence of loop
+    assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+  }
+
+  public void shouldReifyMutuallyRecursiveBound() {
+    Type result = TypeResolver.reify(MutuallyRecursiveBase.class, MutuallyRecursive.class);
+    assert result instanceof ParameterizedType;
+    ParameterizedType parent = (ParameterizedType) result;
+
+    assert parent.getActualTypeArguments()[0] instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[0];
+    assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+
+    assert parent.getActualTypeArguments()[1] instanceof ParameterizedType;
+    parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[1];
+    assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+  }
+
+  public void shouldReifyRecursiveOnSecondBound() {
+    Type result = TypeResolver.reify(RecursiveOnSecondBase.class, RecursiveOnSecond.class);
+    assert result instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) result;
+
+    assert parameterizedType.getActualTypeArguments()[0] == Object.class;
+
+    assert parameterizedType.getActualTypeArguments()[1] instanceof ParameterizedType;
+    parameterizedType = (ParameterizedType)parameterizedType.getActualTypeArguments()[1];
+    // Assert existence of loop
+    assert parameterizedType.getActualTypeArguments()[1] == parameterizedType;
+  }
+
   @Test(expectedExceptions = IllegalArgumentException.class)
   public void shouldThrowOnResolveArgumentForTypeWithMultipleArguments() {
     TypeResolver.resolveRawArgument(Map.class, new HashMap<String, String>() {
