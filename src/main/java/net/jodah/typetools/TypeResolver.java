@@ -17,7 +17,6 @@ package net.jodah.typetools;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -29,15 +28,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -54,6 +49,7 @@ public final class TypeResolver {
   private static Method GET_CONSTANT_POOL;
   private static Method GET_CONSTANT_POOL_SIZE;
   private static Method GET_CONSTANT_POOL_METHOD_AT;
+  private static Object JAVA_LANG_ACCESS;
   private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final Double JAVA_VERSION;
@@ -62,39 +58,49 @@ public final class TypeResolver {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
 
     try {
-      Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
+      String constantPoolName = null;
+      String sharedSecretName = null;
+      if (JAVA_VERSION < 9) {
+          constantPoolName = "sun.reflect.ConstantPool";
+          sharedSecretName = "sun.misc.SharedSecrets";
+      } else {
+          constantPoolName = "jdk.internal.reflect.ConstantPool";
+          sharedSecretName = "jdk.internal.misc.SharedSecrets";
+      }
+      
+      Class<?> sharedSecretsClass = Class.forName(sharedSecretName);
+      Method getJavaLangAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaLangAccess");
+      JAVA_LANG_ACCESS = getJavaLangAccessMethod.invoke(null);
+      
+      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getDeclaredMethod("getConstantPool", Class.class);;
 
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
       Class<?> constantPoolClass = Class.forName(constantPoolName);
       GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
       GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
-      // setting the methods as accessible
-      Field overrideField = AccessibleObject.class.getDeclaredField("override");
-      long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-      unsafe.putBoolean(GET_CONSTANT_POOL, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_SIZE, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_METHOD_AT, overrideFieldOffset, true);
+      GET_CONSTANT_POOL.setAccessible(true);
+      GET_CONSTANT_POOL_SIZE.setAccessible(true);
+      GET_CONSTANT_POOL_METHOD_AT.setAccessible(true);
 
       // additional checks - make sure we get a result when invoking the Class::getConstantPool and
       // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(Object.class);
+      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
       GET_CONSTANT_POOL_SIZE.invoke(constantPool);
 
       for (Method method : Object.class.getDeclaredMethods())
         OBJECT_METHODS.put(method.getName(), method);
 
       RESOLVES_LAMBDAS = true;
-    } catch (Exception ignore) {
+    } catch (Exception exception) {
+        if (JAVA_VERSION == 8) {
+            throw new IllegalStateException("Java 8 detected but lambda support initialization failed - Unsupported JDK?", exception);
+        } else if (JAVA_VERSION > 8) {
+            // TypeResolver can only work if JVM is started with parameters 
+            //        --add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-exports java.base/jdk.internal.reflect=ALL-UNNAMED
+            // which allow unnamed Java modules to access the jdk.internal.misc and jdk.internal.reflect packages, even if they
+            // are not exported by module java.base
+            throw new IllegalStateException("Java 9 or higher detected but internal access failed, did you remember to --add-exports?", exception);
+        }
     }
 
     Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
@@ -738,7 +744,7 @@ public final class TypeResolver {
   private static Member getMemberRef(Class<?> type) {
     Object constantPool;
     try {
-      constantPool = GET_CONSTANT_POOL.invoke(type);
+      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
     } catch (Exception ignore) {
       return null;
     }

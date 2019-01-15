@@ -1,10 +1,20 @@
 sudo: false
 
 language: java
-install: mvn install -DskipTests=true -Dgpg.skip=true
 
-jdk:
-  - oraclejdk8
+install: mvn install -Dgpg.skip=true
+
+jobs:
+  include:
+  - stage: adoptopenjdk.net - Eclipse OpenJ9
+    env: 
+      - MAVEN_OPTS="--add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-exports java.base/jdk.internal.reflect=ALL-UNNAMED"    
+    before_install:
+      - unset -v _JAVA_OPTIONS
+      - wget https://github.com/sormuras/bach/raw/master/install-jdk.sh 
+      - source install-jdk.sh --url $(curl --silent https://api.adoptopenjdk.net/v2/binary/nightly/openjdk11\?openjdk_impl\=openj9\&os\=linux\&arch\=x64\&release\=latest\&type\=jdk | grep 'binary_link' | grep -Eo '(http|https)://[^"]+' | head -1)
+  - stage: jdk.java.net - OpenJDK - GPL
+    jdk: oraclejdk8
 
 notifications:
   email: false

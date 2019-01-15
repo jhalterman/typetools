@@ -50,6 +50,17 @@
   </dependencies>
 
   <build>
+	<pluginManagement>
+		<plugins>
+			<plugin>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.0.0-M3</version>
+				<configuration>
+					<forkCount>0</forkCount>
+				</configuration>
+			</plugin>
+		</plugins>
+	</pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -108,7 +119,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.7.9</version>
+        <version>0.8.2</version>
         <executions>
           <execution>
             <goals>
