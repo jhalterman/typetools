@@ -399,7 +399,7 @@ public final class TypeResolver {
     else if (genericType instanceof Class<?>)
       return genericType;
     else
-      return reify(genericType, typeVariableTypeMap, new HashMap<>());
+      return reify(genericType, typeVariableTypeMap, new HashMap<Type, Type>());
   }
 
   /**
@@ -470,7 +470,7 @@ public final class TypeResolver {
 
       // Copy cache in case the bound is mutually recursive on the variable. This is to avoid sharing of
       // cache in different branches of the call-graph of reify.
-      cache = new HashMap<>(cache);
+      cache = new HashMap<Type, Type>(cache);
 
       // NOTE: According to https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
       // if there are multiple upper bounds where one bound is a class, then this must be the
