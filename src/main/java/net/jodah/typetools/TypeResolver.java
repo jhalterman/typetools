@@ -700,6 +700,7 @@ public final class TypeResolver {
       if (member == null
           || (member instanceof Constructor
               && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+          || member.getDeclaringClass().getName().equals("com.zeroturnaround.jrebelbase.facade.h")
           || member.getDeclaringClass().isAssignableFrom(type))
         continue;
 
