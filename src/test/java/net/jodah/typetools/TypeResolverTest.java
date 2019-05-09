@@ -356,10 +356,13 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assert parent.getActualTypeArguments()[0] instanceof ParameterizedType;
     ParameterizedType parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[0];
     assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+    assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType);
 
     assert parent.getActualTypeArguments()[1] instanceof ParameterizedType;
-    parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[1];
-    assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+    ParameterizedType parameterizedType2 = (ParameterizedType)parent.getActualTypeArguments()[1];
+    assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
+
+    assert !parameterizedType.equals(parameterizedType2);
   }
 
   public void shouldReifyRecursiveOnSecondBound() {
