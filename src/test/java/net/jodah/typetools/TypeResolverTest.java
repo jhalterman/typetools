@@ -9,6 +9,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -117,6 +118,13 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     ParameterizedType secondTypeArgument = (ParameterizedType) typeArguments[1];
     assert secondTypeArgument.getRawType() == ArrayList.class;
     assert secondTypeArgument.getActualTypeArguments()[0] == Object.class;
+  }
+
+  public void shouldResolveTypeVariable() {
+    TypeVariable<Class<Baz>> typeVariable = Baz.class.getTypeParameters()[0];
+    Type type = TypeResolver.reify(typeVariable, Bar.class);
+    assert type instanceof ParameterizedType;
+    assert ((ParameterizedType) type).getRawType().equals(HashSet.class);
   }
 
   public void shouldResolvePartialParameterizedTypeForBazFromBar() {
@@ -319,6 +327,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   }
 
   static abstract class EnumBound<S extends Enum<S>> {
+    public S enumField;
   }
 
   static abstract class SubEnumBound<S extends Enum<S>> extends EnumBound<S>  {
@@ -334,7 +343,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
 
   static abstract class RecursiveLongBase<T> {}
 
-  static abstract class RecursiveLong<T extends List<List<T>>> {}
+  static abstract class RecursiveLong<T extends List<Set<T>>> extends RecursiveLongBase<T> {}
 
   public void shouldReifyRecursiveBound() {
     Type result = TypeResolver.reify(EnumBound.class, SubEnumBound.class);
@@ -343,16 +352,48 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
 
     // Navigate into enum parameter.
     assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
-    parameterizedType = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    ParameterizedType parameterizedType2 = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType2);
     // Assert existence of loop
-    assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
+    assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
+
+    assert !parameterizedType.equals(parameterizedType2);
+  }
+
+  public void shouldReifyEnumBound() throws NoSuchFieldException {
+    Type result = TypeResolver.reify(SubEnumBound.class.getField("enumField").getGenericType(), SubEnumBound.class);
+    assert result instanceof ParameterizedType;
+    ParameterizedType parameterizedType = (ParameterizedType) result;
+    assert parameterizedType.toString().equals("java.lang.Enum<...>");
+
+    // Navigate into enum parameter.
+    assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
+    ParameterizedType parameterizedType2 = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType2);
+
+    // Assert existence of loop
+    assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
+
+    // Reify the same type again, which will create new instances of
+    // ReifiedParameterizedType that are not referentially equal, but
+    // equal to the previous result.
+    Type same = TypeResolver.reify(SubEnumBound.class.getField("enumField").getGenericType(), SubEnumBound.class);
+    assert same.equals(result);
+
+    // Just to call hashCode() and equals() a bit more.
+    Set<Type> types = new HashSet<>();
+    types.add(parameterizedType);
+    types.add(parameterizedType2);
+    types.add(same);
+    assert types.size() == 1;
+    assert types.contains(same);
   }
 
   public void shouldReifyMutuallyRecursiveBound() {
     Type result = TypeResolver.reify(MutuallyRecursiveBase.class, MutuallyRecursive.class);
     assert result instanceof ParameterizedType;
     ParameterizedType parent = (ParameterizedType) result;
-
+    assert result.toString().equals("net.jodah.typetools.TypeResolverTest$MutuallyRecursiveBase<java.util.List<...>, java.util.List<...>>");
     assert parent.getActualTypeArguments()[0] instanceof ParameterizedType;
     ParameterizedType parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[0];
     assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
@@ -362,7 +403,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     ParameterizedType parameterizedType2 = (ParameterizedType)parent.getActualTypeArguments()[1];
     assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
 
-    assert !parameterizedType.equals(parameterizedType2);
+    assert parameterizedType.equals(parameterizedType2);
   }
 
   public void shouldReifyRecursiveOnSecondBound() {
