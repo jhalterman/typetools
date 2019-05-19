@@ -726,7 +726,7 @@ public final class TypeResolver {
   }
 
   /**
-   * test member by custom lambda member filters, using AND operator.
+   * test member by custom lambda member filters, using OR operator.
    */
   private static boolean testAllLambdaMemberFilters(Member member) {
     for (Predicate<Member> lambdaMemberFilter : lambdaMemberFilters) {
