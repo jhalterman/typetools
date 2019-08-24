@@ -17,6 +17,7 @@
   <properties>
     <devCompileVersion>1.8</devCompileVersion>
     <releaseCompileVersion>1.6</releaseCompileVersion>
+    <project.Automatic-Module-Name>net.jodah.typetools</project.Automatic-Module-Name>
   </properties>
 
   <licenses>
@@ -58,6 +59,18 @@
         <configuration>
           <source>${devCompileVersion}</source>
           <target>${devCompileVersion}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.1.2</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Automatic-Module-Name>${project.Automatic-Module-Name}</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
         </configuration>
       </plugin>
       <plugin>
