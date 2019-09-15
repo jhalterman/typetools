@@ -66,7 +66,7 @@ We can [reify] more complex generic type parameters:
 interface Foo<T> {}
 class Bar implements Foo<List<Integer>> {}
 
-Type typeArgs = TypeResolver.reify(Foo.class, bar.class);
+Type typeArgs = TypeResolver.reify(Foo.class, Bar.class);
 
 ParameterizedType paramType = (ParameterizedType) typeArgs;
 Type[] actualTypeArgs = paramType.getActualTypeArguments();
