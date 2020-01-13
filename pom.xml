@@ -78,7 +78,7 @@
             <Implementation-Version>${project.version}</Implementation-Version>
             <Bundle-Name>Type Tools</Bundle-Name>
             <Bundle-SymbolicName>net.jodah.typetools</Bundle-SymbolicName>
-            <Export-Package>net/jodah/typetools;version=1.0</Export-Package>
+            <Export-Package>net/jodah/typetools;version=${project.version}</Export-Package>
             <Import-Package>*</Import-Package>
           </instructions>
         </configuration>
