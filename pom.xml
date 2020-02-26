@@ -9,7 +9,7 @@
 
   <groupId>net.jodah</groupId>
   <artifactId>typetools</artifactId>
-  <version>0.6.2</version>
+  <version>0.6.3-SNAPSHOT</version>
   <packaging>bundle</packaging>
   <name>TypeTools</name>
   <url>http://github.com/jhalterman/typetools/</url>
