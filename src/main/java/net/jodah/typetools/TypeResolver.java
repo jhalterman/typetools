@@ -51,6 +51,7 @@ public final class TypeResolver {
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
   private static boolean RESOLVES_LAMBDAS;
+  private static Object JAVA_LANG_ACCESS;
   private static Method GET_CONSTANT_POOL;
   private static Method GET_CONSTANT_POOL_SIZE;
   private static Method GET_CONSTANT_POOL_METHOD_AT;
@@ -72,22 +73,29 @@ public final class TypeResolver {
         }
       });
 
-      GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
+      Field overrideField = AccessibleObject.class.getDeclaredField("override");
+      long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
+
+      String sharedSecretsName = JAVA_VERSION < 9 ? "sun.misc.SharedSecrets" : "jdk.internal.misc.SharedSecrets";
+      Class<?> sharedSecretsClass = Class.forName(sharedSecretsName);
+      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
+      unsafe.putBoolean(javaLangAccessGetter, overrideFieldOffset, true);
+      Object access = javaLangAccessGetter.invoke(null);
+      GET_CONSTANT_POOL = access.getClass().getMethod("getConstantPool", Class.class);
+
       String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
       Class<?> constantPoolClass = Class.forName(constantPoolName);
       GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
       GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
       // setting the methods as accessible
-      Field overrideField = AccessibleObject.class.getDeclaredField("override");
-      long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
       unsafe.putBoolean(GET_CONSTANT_POOL, overrideFieldOffset, true);
       unsafe.putBoolean(GET_CONSTANT_POOL_SIZE, overrideFieldOffset, true);
       unsafe.putBoolean(GET_CONSTANT_POOL_METHOD_AT, overrideFieldOffset, true);
 
       // additional checks - make sure we get a result when invoking the Class::getConstantPool and
       // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(Object.class);
+      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
       GET_CONSTANT_POOL_SIZE.invoke(constantPool);
 
       for (Method method : Object.class.getDeclaredMethods())
@@ -688,7 +696,7 @@ public final class TypeResolver {
   private static Member getMemberRef(Class<?> type) {
     Object constantPool;
     try {
-      constantPool = GET_CONSTANT_POOL.invoke(type);
+      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
     } catch (Exception ignore) {
       return null;
     }
