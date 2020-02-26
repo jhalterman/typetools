@@ -399,55 +399,46 @@ public final class TypeResolver {
     else if (genericType instanceof Class<?>)
       return genericType;
     else
-      return reify(genericType, typeVariableTypeMap, new HashMap<Type, Type>());
+      return reify(genericType, typeVariableTypeMap, new HashMap<ParameterizedType, ReifiedParameterizedType>());
   }
 
   /**
    * Works like {@link #resolveRawClass(Type, Class, Class)} but does not stop at raw classes. Instead, traverses
    * referenced types.
    *
-   * @param cache contains a mapping of generic types to reified types. A value of {@code null} inside a
+   * @param partial contains a mapping of generic types to reified types. A value of {@code null} inside a
    *        {@link ReifiedParameterizedType} instance means that this type is currently being reified.
    */
-  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap, Map<Type, Type> cache) {
+  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap, Map<ParameterizedType, ReifiedParameterizedType> partial) {
     // Terminal case.
     if (genericType instanceof Class<?>)
       return genericType;
 
-    // For cycles of length larger than one, find its last element by chasing through cache.
-    while (cache.containsKey(genericType)) {
-      genericType = cache.get(genericType);
-    }
-
     // Recursive cases.
     if (genericType instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) genericType;
-      final Type[] genericTypeArguments =  parameterizedType.getActualTypeArguments();
-      final Type[] reifiedTypeArguments = new Type[genericTypeArguments.length];
-
-      ReifiedParameterizedType result = new ReifiedParameterizedType(parameterizedType);
-      cache.put(genericType, result);
-
-      boolean changed = false;
-      for (int i = 0; i < genericTypeArguments.length; i++) {
-        // Cycle detection. In case a genericTypeArgument is null, it is currently being resolved,
-        // thus there's a cycle in the type's structure.
-        if (genericTypeArguments[i] == null) {
-          return parameterizedType;
-        }
-        reifiedTypeArguments[i] = reify(genericTypeArguments[i], typeVariableMap, cache);
-        changed = changed || (reifiedTypeArguments[i] != genericTypeArguments[i]);
+      // Self-referential type needs special attention. Otherwise we might accidentally overflow the stack.
+      if (partial.containsKey(parameterizedType)) {
+        ReifiedParameterizedType res = partial.get(genericType);
+        res.addReifiedTypeArgument(res);
+        return res;
       }
-
-      if (!changed)
-        return parameterizedType;
-
-      result.setReifiedTypeArguments(reifiedTypeArguments);
+      final Type[] genericTypeArguments =  parameterizedType.getActualTypeArguments();
+      final ReifiedParameterizedType result = new ReifiedParameterizedType(parameterizedType);
+      partial.put(parameterizedType, result);
+      for (Type genericTypeArgument : genericTypeArguments) {
+        Type reified = reify(genericTypeArgument, typeVariableMap, partial);
+        // Self-references are added as soon as they are detected, see above.
+        // In this case, skip adding.
+        if (reified != result) {
+          result.addReifiedTypeArgument(reified);
+        }
+      }
       return result;
     } else if (genericType instanceof GenericArrayType) {
       final GenericArrayType genericArrayType = (GenericArrayType) genericType;
       final Type genericComponentType = genericArrayType.getGenericComponentType();
-      final Type reifiedComponentType = reify(genericArrayType.getGenericComponentType(), typeVariableMap, cache);
+      final Type reifiedComponentType = reify(genericArrayType.getGenericComponentType(), typeVariableMap, partial);
 
       if (genericComponentType == reifiedComponentType)
         return genericComponentType;
@@ -461,36 +452,26 @@ public final class TypeResolver {
     } else if (genericType instanceof TypeVariable<?>) {
       final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
       final Type mapping = typeVariableMap.get(typeVariable);
-      if (mapping != null) {
-        cache.put(typeVariable, mapping);
-        return reify(mapping, typeVariableMap, cache);
-      }
-
-      final Type[] upperBounds = typeVariable.getBounds();
-
-      // Copy cache in case the bound is mutually recursive on the variable. This is to avoid sharing of
-      // cache in different branches of the call-graph of reify.
-      cache = new HashMap<Type, Type>(cache);
-
+      if (mapping != null)
+        return reify(mapping, typeVariableMap, partial);
       // NOTE: According to https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
       // if there are multiple upper bounds where one bound is a class, then this must be the
-      // leftmost/first bound. Therefore we blindly take this one, hoping is the most relevant.
+      // leftmost/first bound. Therefore we blindly take this one, hoping it is the most relevant.
       // Hibernate does the same when erasing types, see also
       // https://github.com/hibernate/hibernate-validator/blob/6.0/engine/src/main/java/org/hibernate/validator/internal/util/TypeHelper.java#L181-L186
-      cache.put(typeVariable, upperBounds[0]);
-      return reify(upperBounds[0], typeVariableMap, cache);
+      return reify(typeVariable.getBounds()[0], typeVariableMap, partial);
     } else if (genericType instanceof WildcardType) {
       final WildcardType wildcardType = (WildcardType) genericType;
       final Type[] upperBounds = wildcardType.getUpperBounds();
       final Type[] lowerBounds = wildcardType.getLowerBounds();
       if (upperBounds.length == 1 && lowerBounds.length == 0)
-        return reify(upperBounds[0], typeVariableMap, cache);
+        return reify(upperBounds[0], typeVariableMap, partial);
 
       throw new UnsupportedOperationException(
-          "Attempted to reify wildcard type with name '" + wildcardType + "' which has " +
-          upperBounds.length + " upper bounds and " + lowerBounds.length + " lower bounds. " +
-          "Reification of wildcard types is only supported for " +
-          "the trivial case of exactly one upper bound and no lower bounds.");
+          "Attempted to reify wildcard type with name '" + wildcardType.getTypeName() +
+          "' which has " + upperBounds.length + " upper bounds and " + lowerBounds.length +
+          " lower bounds. Reification of wildcard types is only supported for" +
+          " the trivial case of exactly 1 upper bound and 0 lower bounds.");
     }
     throw new UnsupportedOperationException(
         "Reification of type with name '" + genericType.getTypeName() + "' and " +
