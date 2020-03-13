@@ -15,6 +15,8 @@
  */
 package net.jodah.typetools;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.AccessibleObject;
@@ -73,15 +75,49 @@ public final class TypeResolver {
         }
       });
 
-      Field overrideField = AccessibleObject.class.getDeclaredField("override");
-      long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-
-      String sharedSecretsName = JAVA_VERSION < 9 ? "sun.misc.SharedSecrets" : "jdk.internal.misc.SharedSecrets";
+      String sharedSecretsName;
+      AccessMaker accessSetter;
+      if (JAVA_VERSION < 9) {
+        sharedSecretsName = "sun.misc.SharedSecrets";
+        // Java 8 and lower can simply call setAccessible
+        accessSetter = new AccessMaker() {
+          @Override
+          public void makeAccessible(AccessibleObject accessibleObject) {
+            accessibleObject.setAccessible(true);
+          }
+        };
+      } else if (JAVA_VERSION < 12) {
+          sharedSecretsName = "jdk.internal.misc.SharedSecrets";
+          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
+          Field overrideField = AccessibleObject.class.getDeclaredField("override");
+          long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
+          accessSetter = new AccessMaker() {
+            @Override
+            public void makeAccessible(AccessibleObject accessibleObject) {
+              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
+            }
+        };
+      } else {
+          sharedSecretsName = "jdk.internal.access.SharedSecrets";
+          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
+          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
+          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
+          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
+          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
+          MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+          accessSetter = new AccessMaker() {
+            @Override
+            public void makeAccessible(AccessibleObject object) throws Throwable {
+              overrideSetter.invoke(object, true);
+            }
+        };
+      }
       Class<?> sharedSecretsClass = Class.forName(sharedSecretsName);
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      unsafe.putBoolean(javaLangAccessGetter, overrideFieldOffset, true);
-      Object access = javaLangAccessGetter.invoke(null);
-      GET_CONSTANT_POOL = access.getClass().getMethod("getConstantPool", Class.class);
+      accessSetter.makeAccessible(javaLangAccessGetter);
+      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
+      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
 
       String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
       Class<?> constantPoolClass = Class.forName(constantPoolName);
@@ -89,9 +125,9 @@ public final class TypeResolver {
       GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
       // setting the methods as accessible
-      unsafe.putBoolean(GET_CONSTANT_POOL, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_SIZE, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_METHOD_AT, overrideFieldOffset, true);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
 
       // additional checks - make sure we get a result when invoking the Class::getConstantPool and
       // ConstantPool::getSize on a class
@@ -102,7 +138,7 @@ public final class TypeResolver {
         OBJECT_METHODS.put(method.getName(), method);
 
       RESOLVES_LAMBDAS = true;
-    } catch (Exception ignore) {
+    } catch (Throwable ignore) {
     }
 
     Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
@@ -117,7 +153,11 @@ public final class TypeResolver {
     types.put(void.class, Void.class);
     PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
   }
-
+  
+  private interface AccessMaker {
+    void makeAccessible(AccessibleObject object) throws Throwable;
+  }
+  
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
