@@ -65,7 +65,7 @@ public final class TypeResolver {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
 
     try {
-      Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
+      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
         @Override
         public Unsafe run() throws Exception {
           final Field f = Unsafe.class.getDeclaredField("theUnsafe");
@@ -90,7 +90,7 @@ public final class TypeResolver {
           sharedSecretsName = "jdk.internal.misc.SharedSecrets";
           // access control got strengthed in Java 9, but can be circumvented with Unsafe.
           Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
+          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
           accessSetter = new AccessMaker() {
             @Override
             public void makeAccessible(AccessibleObject accessibleObject) {
@@ -105,11 +105,11 @@ public final class TypeResolver {
           long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
           Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
           MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
           accessSetter = new AccessMaker() {
             @Override
             public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invoke(object, true);
+              overrideSetter.invoke(new Object[] {object, true});
             }
         };
       }
