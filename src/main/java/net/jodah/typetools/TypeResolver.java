@@ -109,7 +109,7 @@ public final class TypeResolver {
           accessSetter = new AccessMaker() {
             @Override
             public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invoke(new Object[] {object, true});
+              overrideSetter.invokeWithArguments(new Object[] {object, true});
             }
         };
       }
