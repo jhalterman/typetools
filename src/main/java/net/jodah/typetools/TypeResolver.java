@@ -75,10 +75,10 @@ public final class TypeResolver {
         }
       });
 
-      String sharedSecretsName;
+      Class<?> sharedSecretsClass;
       AccessMaker accessSetter;
       if (JAVA_VERSION < 9) {
-        sharedSecretsName = "sun.misc.SharedSecrets";
+        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
         // Java 8 and lower can simply call setAccessible
         accessSetter = new AccessMaker() {
           @Override
@@ -87,7 +87,12 @@ public final class TypeResolver {
           }
         };
       } else if (JAVA_VERSION < 12) {
-          sharedSecretsName = "jdk.internal.misc.SharedSecrets";
+          try {
+            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
+          } catch (ClassNotFoundException e) {
+            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
+            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+          }
           // access control got strengthed in Java 9, but can be circumvented with Unsafe.
           Field overrideField = AccessibleObject.class.getDeclaredField("override");
           final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
@@ -98,7 +103,7 @@ public final class TypeResolver {
             }
         };
       } else {
-          sharedSecretsName = "jdk.internal.access.SharedSecrets";
+          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
           // In Java 12, AccessibleObject.override was added to the reflection blacklist.
           // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
           Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
@@ -113,7 +118,6 @@ public final class TypeResolver {
             }
         };
       }
-      Class<?> sharedSecretsClass = Class.forName(sharedSecretsName);
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
