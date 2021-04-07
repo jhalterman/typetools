@@ -17,7 +17,6 @@ package net.jodah.typetools;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -29,15 +28,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -50,52 +45,26 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static boolean RESOLVES_LAMBDAS;
-  private static Method GET_CONSTANT_POOL;
-  private static Method GET_CONSTANT_POOL_SIZE;
-  private static Method GET_CONSTANT_POOL_METHOD_AT;
+
+  private static final double JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+
+  private static final boolean RESOLVES_LAMBDAS;
+  private static final Method GET_CONSTANT_POOL;
+  private static final Method GET_CONSTANT_POOL_SIZE;
+  private static final Method GET_CONSTANT_POOL_METHOD_AT;
+
   private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
-  private static final Double JAVA_VERSION;
 
   static {
-    JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    for (Method method : Object.class.getDeclaredMethods())
+      OBJECT_METHODS.put(method.getName(), method);
 
-    try {
-      Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      GET_CONSTANT_POOL = Class.class.getDeclaredMethod("getConstantPool");
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
-      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
-      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      Field overrideField = AccessibleObject.class.getDeclaredField("override");
-      long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-      unsafe.putBoolean(GET_CONSTANT_POOL, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_SIZE, overrideFieldOffset, true);
-      unsafe.putBoolean(GET_CONSTANT_POOL_METHOD_AT, overrideFieldOffset, true);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(Object.class);
-      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-
-      for (Method method : Object.class.getDeclaredMethods())
-        OBJECT_METHODS.put(method.getName(), method);
-
-      RESOLVES_LAMBDAS = true;
-    } catch (Exception ignore) {
-    }
+    ConstantPools.Result constantPoolResult = ConstantPools.resolveConstantPoolMethods();
+    RESOLVES_LAMBDAS = constantPoolResult.resolved();
+    GET_CONSTANT_POOL = constantPoolResult.getGetConstantPool();
+    GET_CONSTANT_POOL_SIZE = constantPoolResult.getGetConstantPoolSize();
+    GET_CONSTANT_POOL_METHOD_AT = constantPoolResult.getGetConstantPoolMethodAt();
 
     Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
     types.put(boolean.class, Boolean.class);

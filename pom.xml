@@ -99,7 +99,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.7</version>
+        <version>3.2.0</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
@@ -116,12 +116,13 @@
             -notimestamp
             -link http://docs.oracle.com/javase/8/docs/api/
           </additionalparam>
+          <failOnError>false</failOnError>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.2</version>
+        <version>0.8.6</version>
         <executions>
           <execution>
             <goals>
