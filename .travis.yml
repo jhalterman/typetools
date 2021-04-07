@@ -5,6 +5,7 @@ install: mvn install -DskipTests=true -Dgpg.skip=true
 jdk:
   - openjdk8
   - openjdk11
+  - openjdk14
 
 notifications:
   email: false
