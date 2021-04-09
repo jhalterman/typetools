@@ -177,7 +177,7 @@ JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
 
 ## License
 
-Copyright 2010-2019 Jonathan Halterman and friends. Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright Jonathan Halterman and friends. Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 [resolve-raw-args]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.Class-java.lang.Class-
 [reify]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#reify-java.lang.Class-java.lang.Class-
