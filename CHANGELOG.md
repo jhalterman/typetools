@@ -1,3 +1,7 @@
+# 0.6.3
+
+* Added support for lambda type argument resolution in Java 12 and above.
+
 # 0.6.0
 
 * Added support for reifying generics
