@@ -1,8 +1,8 @@
 # TypeTools
 [![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
+[![Maven Central](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&colorB=53C92E)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/typetools.svg?label=javadoc)](https://jhalterman.github.com/typetools/javadoc)
+[![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
 
 A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
 
@@ -173,7 +173,7 @@ org.osgi.framework.system.packages.extra=sun.reflect
 
 ## Docs
 
-JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
+JavaDocs are available [here](https://jodah.net/typetools/javadoc).
 
 ## License
 
