@@ -1,5 +1,6 @@
 # TypeTools
-[![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
+
+[![Build Status](https://github.com/jhalterman/typetools/workflows/build/badge.svg)](https://github.com/jhalterman/typetools/actions)
 [![Maven Central](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&colorB=53C92E)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
