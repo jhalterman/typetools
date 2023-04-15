@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2017 the original author or authors.
+ * Copyright 2002-2021 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,10 +33,13 @@ import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.security.AccessController;
 import java.security.PrivilegedExceptionAction;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import sun.misc.Unsafe;
@@ -58,7 +61,8 @@ public final class TypeResolver {
   private static Method GET_CONSTANT_POOL_SIZE;
   private static Method GET_CONSTANT_POOL_METHOD_AT;
   private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
+  private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS_MAP;
+  private static final Set<Class<?>> PRIMITIVE_WRAPPERS;
   private static final Double JAVA_VERSION;
 
   static {
@@ -155,13 +159,14 @@ public final class TypeResolver {
     types.put(long.class, Long.class);
     types.put(short.class, Short.class);
     types.put(void.class, Void.class);
-    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
+    PRIMITIVE_WRAPPERS_MAP = Collections.unmodifiableMap(types);
+    PRIMITIVE_WRAPPERS = Collections.unmodifiableSet(new HashSet<>(types.values()));
   }
-  
+
   private interface AccessMaker {
     void makeAccessible(AccessibleObject object) throws Throwable;
   }
-  
+
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
@@ -719,41 +724,116 @@ public final class TypeResolver {
   }
 
   private static Member getMemberRef(Class<?> type) {
-    Object constantPool;
-    try {
-      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
-    } catch (Exception ignore) {
-      return null;
+    Member[] constantPoolMethods = extractConstantPoolMethods(type);
+    //skip jacoco synthetic methods
+    int start = constantPoolMethods.length;
+    if (isInstrumentedByJacoco(type)) {
+      for (int i = constantPoolMethods.length - 1; i >= 0; i--) {
+        if (constantPoolMethods[i].getName().startsWith("$jacoco")) {
+          start = i;
+        }
+      }
     }
 
     Member result = null;
-    for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
-      Member member = getConstantPoolMethodAt(constantPool, i);
+    Method prev = null;
+    for (int i = start - 1; i >= 0; i--) {
+      Member member = constantPoolMethods[i];
       // Skip SerializedLambda constructors and members of the "type" class
-      if (member == null
-          || (member instanceof Constructor
-              && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-          || member.getDeclaringClass().isAssignableFrom(type))
+      if ((member instanceof Constructor
+          && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+          || member.getDeclaringClass().equals(type))
         continue;
 
       result = member;
 
       // Return if not valueOf method
-      if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
-        break;
+      if (isBoxingOrUnboxingMethod(member) && prev == null) {
+        prev = (Method) member; //retain the last member if it is boxing or unboxing
+        continue;
+      }
+
+      break;
+    }
+
+    if (prev != null) {
+      // depending on the result, if the constantpool ends with a boxing method,
+      // if result is a constructor, then special care is needed
+      // | constructor type    | prev type       | end result      |
+      // | any                 | boxing method   | boxing method   |
+      // | primitive wrapper   | unboxing method | constructor     |
+      // | ! primitive wrapper | unboxing method | unboxing method |
+      if (result instanceof Constructor) {
+        if (isBoxingMethod(prev)) {
+          return prev;
+        } else if (isUnboxingMethod(prev) && !PRIMITIVE_WRAPPERS.contains(((Constructor<?>) result).getDeclaringClass())) {
+          return prev;
+        }
+      }
     }
 
     return result;
   }
 
-  private static boolean isAutoBoxingMethod(Method method) {
+  private static Member[] extractConstantPoolMethods(Class<?> type) {
+    Object constantPool;
+    try {
+      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
+    } catch (Exception ignore) {
+      return new Member[0];
+    }
+    ArrayList<Member> methods = new ArrayList<>();
+    int constantPoolSize = getConstantPoolSize(constantPool);
+    for (int i = 0; i < constantPoolSize; i++) {
+      Member method = getConstantPoolMethodAt(constantPool, i);
+      if (method != null)
+        methods.add(method);
+    }
+    return methods.toArray(new Member[methods.size()]);
+  }
+
+  static boolean isInstrumentedByJacoco(Class<?> type) {
+    // http://www.eclemma.org/jacoco/trunk/doc/faq.html
+    // JaCoCo [...] adds two members to the classes: A private static field $jacocoData and
+    // a private static method $jacocoInit(). Both members are marked as synthetic.
+    boolean result = false;
+    try {
+      type.getDeclaredMethod("$jacocoInit");
+      result = true;
+    } catch (NoSuchMethodException ignore) {
+    }
+    try {
+      type.getDeclaredField("$jacocoData");
+      result = true;
+    } catch (NoSuchFieldException ignore) {
+    }
+    return result;
+  }
+
+  private static boolean isBoxingOrUnboxingMethod(Member member) {
+    return member instanceof Method && (isBoxingMethod((Method) member) || isUnboxingMethod((Method) member));
+  }
+
+  private static boolean isBoxingMethod(Method method) {
     Class<?>[] parameters = method.getParameterTypes();
     return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
         && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
   }
 
+  private static boolean isUnboxingMethod(Method method) {
+    String methodName = method.getName();
+    String returnType = method.getReturnType().getSimpleName();
+    Class<?>[] parameters = method.getParameterTypes();
+
+    return method.getReturnType().isPrimitive() && parameters.length == 0
+        //booleanValue, byteValue, charValue, doubleValue, floatValue, intValue, longValue, shortValue
+        && methodName.startsWith(returnType) && methodName.endsWith("Value")
+        && (wrapPrimitives(method.getReturnType()).equals(method.getDeclaringClass())
+        || method.getDeclaringClass().equals(Number.class));
+  }
+
   private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS.get(clazz) : clazz;
+    return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS_MAP.get(clazz) : clazz;
   }
 
   private static int getConstantPoolSize(Object constantPool) {
