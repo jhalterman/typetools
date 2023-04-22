@@ -33,11 +33,8 @@ import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.security.AccessController;
 import java.security.PrivilegedExceptionAction;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.*;
+import java.util.function.Predicate;
 
 import sun.misc.Unsafe;
 
@@ -60,6 +57,7 @@ public final class TypeResolver {
   private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final Double JAVA_VERSION;
+  private static final List<Predicate<Member>> lambdaMemberFilters = new ArrayList<>();
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
@@ -425,6 +423,17 @@ public final class TypeResolver {
     return resolveRawClass(genericType, subType, null);
   }
 
+  /**
+   * Using some low-level instruction technology may add some members into the constant pool. The generated members
+   * could make {@link TypeResolver} to return a wrong type. To avoid this, use {@code addLambdaMemberFilter} to
+   * add a custom lambda member filter to skip wrong members.
+   *
+   * @param lambdaMemberFilter to add
+   */
+  public static synchronized void addLambdaMemberFilter(Predicate<Member> lambdaMemberFilter) {
+    lambdaMemberFilters.add(lambdaMemberFilter);
+  }
+
   private static Class<?> resolveRawClass(Type genericType, Class<?> subType, Class<?> functionalInterface) {
     if (genericType instanceof Class) {
       return (Class<?>) genericType;
@@ -735,6 +744,9 @@ public final class TypeResolver {
               && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
           || member.getDeclaringClass().isAssignableFrom(type))
         continue;
+      if (testAllLambdaMemberFilters(member)) {
+        continue;
+      }
 
       result = member;
 
@@ -744,6 +756,18 @@ public final class TypeResolver {
     }
 
     return result;
+  }
+
+  /**
+   * test member by custom lambda member filters, using OR operator.
+   */
+  private static boolean testAllLambdaMemberFilters(Member member) {
+    for (Predicate<Member> lambdaMemberFilter : lambdaMemberFilters) {
+      if (lambdaMemberFilter.test(member)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean isAutoBoxingMethod(Method method) {
