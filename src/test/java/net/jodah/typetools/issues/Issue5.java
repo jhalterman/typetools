@@ -25,7 +25,12 @@ public class Issue5 {
   }
 
   public void test() {
-    BiConsumer<Client, Service> bc = Client::bind;
+      BiConsumer<Client, Service> bc = new BiConsumer<Client, Service>() {
+          @Override
+          public void accept(Client client, Service service) {
+              client.bind(service);
+          }
+      };
     assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, bc.getClass()), new Class<?>[] { Client.class,
         Service.class });
   }

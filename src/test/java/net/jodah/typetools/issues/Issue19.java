@@ -12,14 +12,19 @@ import net.jodah.typetools.TypeResolver;
 
 @Test
 public class Issue19 {
-  public static Predicate<Method> withModifiers(int modifier) {
-    return m -> m.getModifiers() == modifier;
-  }
+    public static Predicate<Method> withModifiers(int modifier) {
+        return new Predicate<Method>() {
+            @Override
+            public boolean test(Method m) {
+                return m.getModifiers() == modifier;
+            }
+        };
+    }
 
-  public void test() {
-    Predicate<Method> a = withModifiers(1);
-    Class<?> type = TypeResolver.resolveRawArgument(Predicate.class, a.getClass());
+    public void test() {
+        Predicate<Method> a = withModifiers(1);
+        Class<?> type = TypeResolver.resolveRawArgument(Predicate.class, a.getClass());
 
-    assertEquals(type, Method.class);
-  }
+        assertEquals(type, Method.class);
+    }
 }

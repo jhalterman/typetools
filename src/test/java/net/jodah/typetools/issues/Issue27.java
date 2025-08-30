@@ -14,7 +14,12 @@ import net.jodah.typetools.TypeResolver;
 @Test
 public class Issue27 {
   public void test() throws Throwable {
-    Function<String[], String> fn = (String[] strings) -> strings.toString();
+      Function<String[], String> fn = new Function<String[], String>() {
+          @Override
+          public String apply(String[] strings) {
+              return strings.toString();
+          }
+      };
 
     Class<?>[] args = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
 

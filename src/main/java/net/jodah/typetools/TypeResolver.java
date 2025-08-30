@@ -31,15 +31,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -61,102 +57,148 @@ public final class TypeResolver {
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final Double JAVA_VERSION;
 
-  static {
-    JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    static {
+        JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
 
-    try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
+        try {
+            Class<?> sharedSecretsClass = null;
+            AccessMaker accessSetter = null;
 
-          return (Unsafe) f.get(null);
+            if (JAVA_VERSION < 9) {
+                // Java 8 and below: simple setAccessible
+                sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
+                accessSetter = new AccessMaker() {
+                    @Override
+                    public void makeAccessible(AccessibleObject object) {
+                        object.setAccessible(true);
+                    }
+                };
+
+            } else if (JAVA_VERSION < 12) {
+                // Java 9..11: try to use AccessibleObject.override field if present, otherwise fallback to setAccessible
+                try {
+                    try {
+                        sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
+                    } catch (ClassNotFoundException e) {
+                        sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+                    }
+
+                    final Field overrideField = AccessibleObject.class.getDeclaredField("override");
+                    overrideField.setAccessible(true);
+                    accessSetter = new AccessMaker() {
+                        @Override
+                        public void makeAccessible(AccessibleObject object) {
+                            try {
+                                overrideField.setBoolean(object, true);
+                            } catch (Throwable t) {
+                                object.setAccessible(true); // safe fallback
+                            }
+                        }
+                    };
+                } catch (Throwable t) {
+                    // couldn't access override field — fallback
+                    accessSetter = new AccessMaker() {
+                        @Override
+                        public void makeAccessible(AccessibleObject object) {
+                            object.setAccessible(true);
+                        }
+                    };
+                }
+
+            } else {
+                // Java 12+: try to use IMPL_LOOKUP -> findSetter(AccessibleObject, "override", boolean.class)
+                try {
+                    sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+
+                    Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+                    implLookupField.setAccessible(true); // may require --add-opens at runtime
+                    MethodHandles.Lookup implLookup = (MethodHandles.Lookup) implLookupField.get(null);
+
+                    final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+                    accessSetter = new AccessMaker() {
+                        @Override
+                        public void makeAccessible(AccessibleObject object) throws Throwable {
+                            try {
+                                overrideSetter.invoke(object, true);
+                            } catch (Throwable t) {
+                                object.setAccessible(true); // fallback
+                            }
+                        }
+                    };
+                } catch (Throwable t) {
+                    // fallback safe behavior
+                    accessSetter = new AccessMaker() {
+                        @Override
+                        public void makeAccessible(AccessibleObject object) {
+                            object.setAccessible(true);
+                        }
+                    };
+                }
+            }
+
+            // ensure sharedSecretsClass initialized (should be by above branches) — else try conservative default
+            if (sharedSecretsClass == null) {
+                try {
+                    sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+                } catch (Throwable ignore) {
+                    try {
+                        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
+                    } catch (Throwable ignore2) {
+                        // leave null; we'll handle it below
+                    }
+                }
+            }
+
+            if (sharedSecretsClass != null) {
+                Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
+                accessSetter.makeAccessible(javaLangAccessGetter);
+                JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
+
+                GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
+
+                String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
+                Class<?> constantPoolClass = Class.forName(constantPoolName);
+                GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
+                GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
+
+                // make accessible where needed
+                accessSetter.makeAccessible(GET_CONSTANT_POOL);
+                accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
+                accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
+
+                // test calls (wrapped)
+                Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
+                GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+            } else {
+                // SharedSecrets not available: disable lambda-resolution path gracefully
+                GET_CONSTANT_POOL = null;
+                GET_CONSTANT_POOL_SIZE = null;
+                GET_CONSTANT_POOL_METHOD_AT = null;
+                // RESOLVES_LAMBDAS stays false
+            }
+
+            for (Method method : Object.class.getDeclaredMethods()) {
+                OBJECT_METHODS.put(method.getName(), method);
+            }
+
+            RESOLVES_LAMBDAS = (GET_CONSTANT_POOL != null);
+
+        } catch (Throwable ignore) {
+            // keep silent — library should still work, but lambda-resolution may be disabled
         }
-      });
 
-      Class<?> sharedSecretsClass;
-      AccessMaker accessSetter;
-      if (JAVA_VERSION < 9) {
-        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-        // Java 8 and lower can simply call setAccessible
-        accessSetter = new AccessMaker() {
-          @Override
-          public void makeAccessible(AccessibleObject accessibleObject) {
-            accessibleObject.setAccessible(true);
-          }
-        };
-      } else if (JAVA_VERSION < 12) {
-          try {
-            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-          } catch (ClassNotFoundException e) {
-            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          }
-          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
-          Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject accessibleObject) {
-              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
-            }
-        };
-      } else {
-          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invokeWithArguments(new Object[] {object, true});
-            }
-        };
-      }
-      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      accessSetter.makeAccessible(javaLangAccessGetter);
-      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
-      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
-
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
-      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
-      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      accessSetter.makeAccessible(GET_CONSTANT_POOL);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
-      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-
-      for (Method method : Object.class.getDeclaredMethods())
-        OBJECT_METHODS.put(method.getName(), method);
-
-      RESOLVES_LAMBDAS = true;
-    } catch (Throwable ignore) {
+        Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
+        types.put(boolean.class, Boolean.class);
+        types.put(byte.class, Byte.class);
+        types.put(char.class, Character.class);
+        types.put(double.class, Double.class);
+        types.put(float.class, Float.class);
+        types.put(int.class, Integer.class);
+        types.put(long.class, Long.class);
+        types.put(short.class, Short.class);
+        types.put(void.class, Void.class);
+        PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
     }
-
-    Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
-    types.put(boolean.class, Boolean.class);
-    types.put(byte.class, Byte.class);
-    types.put(char.class, Character.class);
-    types.put(double.class, Double.class);
-    types.put(float.class, Float.class);
-    types.put(int.class, Integer.class);
-    types.put(long.class, Long.class);
-    types.put(short.class, Short.class);
-    types.put(void.class, Void.class);
-    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
-  }
   
   private interface AccessMaker {
     void makeAccessible(AccessibleObject object) throws Throwable;

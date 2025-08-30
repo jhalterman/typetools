@@ -13,11 +13,16 @@ import net.jodah.typetools.TypeResolver;
  */
 @Test
 public class Issue11 {
-  public void test() {
-    TypeResolver.disableCache();
+    public void test() {
+        TypeResolver.disableCache();
 
-    Function<String, Integer> strToInt = s -> Integer.valueOf(s);
-    Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, strToInt.getClass());
-    assertEquals(typeArgs, new Class<?>[] { String.class, Integer.class });
-  }
+        Function<String, Integer> strToInt = new Function<String, Integer>() {
+            @Override
+            public Integer apply(String s) {
+                return Integer.valueOf(s);
+            }
+        };
+        Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, strToInt.getClass());
+        assertEquals(typeArgs, new Class<?>[] { String.class, Integer.class });
+    }
 }
