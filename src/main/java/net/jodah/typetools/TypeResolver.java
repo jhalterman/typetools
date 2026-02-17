@@ -31,22 +31,17 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import sun.misc.Unsafe;
-
 /**
  * Enhanced type resolution utilities.
  *
  * @author Jonathan Halterman
  */
-@SuppressWarnings("restriction")
 public final class TypeResolver {
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
@@ -65,58 +60,80 @@ public final class TypeResolver {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
 
     try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
       Class<?> sharedSecretsClass;
       AccessMaker accessSetter;
       if (JAVA_VERSION < 9) {
         sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-        // Java 8 and lower can simply call setAccessible
+        // Java 8 can simply call setAccessible
         accessSetter = new AccessMaker() {
           @Override
           public void makeAccessible(AccessibleObject accessibleObject) {
             accessibleObject.setAccessible(true);
           }
         };
-      } else if (JAVA_VERSION < 12) {
-          try {
-            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-          } catch (ClassNotFoundException e) {
-            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+      } else if (JAVA_VERSION < 16) {
+        try {
+          sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
+        } catch (ClassNotFoundException e) {
+          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+        }
+        // Java 9-15: use IMPL_LOOKUP via sun.misc.Unsafe (no --add-opens needed)
+        Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+        Field theUnsafeField = unsafeClass.getDeclaredField("theUnsafe");
+        theUnsafeField.setAccessible(true);  // sun.misc is exported, this always works
+        Object unsafe = theUnsafeField.get(null);
+        Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+        long implLookupFieldOffset = (Long) unsafeClass.getMethod("staticFieldOffset", Field.class)
+            .invoke(unsafe, implLookupField);
+        Object lookupStaticFieldBase = unsafeClass.getMethod("staticFieldBase", Field.class)
+            .invoke(unsafe, implLookupField);
+        final MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafeClass
+            .getMethod("getObject", Object.class, long.class)
+            .invoke(unsafe, lookupStaticFieldBase, implLookupFieldOffset);
+        final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+        accessSetter = new AccessMaker() {
+          @Override
+          public void makeAccessible(AccessibleObject object) throws Throwable {
+            overrideSetter.invokeWithArguments(new Object[] {object, true});
           }
-          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
-          Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject accessibleObject) {
-              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
-            }
+        };
+      } else if (hasAddOpensForReflect()) {
+        sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+        // Java 16+: use MethodHandles.privateLookupIn() — --add-opens flags are present
+        Method privateLookupIn = MethodHandles.class.getMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
+        MethodHandles.Lookup lookup = (MethodHandles.Lookup) privateLookupIn.invoke(null, AccessibleObject.class, MethodHandles.lookup());
+        final MethodHandle overrideSetter = lookup.findSetter(AccessibleObject.class, "override", boolean.class);
+        accessSetter = new AccessMaker() {
+          @Override
+          public void makeAccessible(AccessibleObject object) throws Throwable {
+            overrideSetter.invokeWithArguments(new Object[] {object, true});
+          }
+        };
+      } else if (JAVA_VERSION < 22) {
+        sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+        // Java 16-21 without --add-opens: use IMPL_LOOKUP via sun.misc.Unsafe
+        Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+        Field theUnsafeField = unsafeClass.getDeclaredField("theUnsafe");
+        theUnsafeField.setAccessible(true);
+        Object unsafe = theUnsafeField.get(null);
+        Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+        long implLookupFieldOffset = (Long) unsafeClass.getMethod("staticFieldOffset", Field.class)
+            .invoke(unsafe, implLookupField);
+        Object lookupStaticFieldBase = unsafeClass.getMethod("staticFieldBase", Field.class)
+            .invoke(unsafe, implLookupField);
+        final MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafeClass
+            .getMethod("getObject", Object.class, long.class)
+            .invoke(unsafe, lookupStaticFieldBase, implLookupFieldOffset);
+        final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+        accessSetter = new AccessMaker() {
+          @Override
+          public void makeAccessible(AccessibleObject object) throws Throwable {
+            overrideSetter.invokeWithArguments(new Object[] {object, true});
+          }
         };
       } else {
-          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invokeWithArguments(new Object[] {object, true});
-            }
-        };
+        // Java 22+ without --add-opens: no viable fallback
+        throw new UnsupportedOperationException("No access control bypass available");
       }
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
@@ -160,6 +177,16 @@ public final class TypeResolver {
   
   private interface AccessMaker {
     void makeAccessible(AccessibleObject object) throws Throwable;
+  }
+
+  private static boolean hasAddOpensForReflect() {
+    try {
+      Method privateLookupIn = MethodHandles.class.getMethod("privateLookupIn", Class.class, MethodHandles.Lookup.class);
+      privateLookupIn.invoke(null, AccessibleObject.class, MethodHandles.lookup());
+      return true;
+    } catch (Throwable t) {
+      return false;
+    }
   }
   
   /** An unknown type. */

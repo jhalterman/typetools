@@ -5,7 +5,7 @@
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
 
-A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
+A simple, zero-dependency library for working with types. Supports Java 1.8+ and Android.
 
 ## Introduction
 
@@ -143,10 +143,20 @@ TypeResolver.disableCache();
 
 #### On Lambda Support
 
-Lambda type argument resolution is currently supported for:
+Lambda type argument resolution works out of the box on Java 8-15. On Java 16+, the following JVM flags are required:
 
-* Oracle JDK 8, 9
-* Open JDK 8, 9
+```
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+--add-opens java.base/jdk.internal.access=ALL-UNNAMED
+--add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+```
+
+Without these flags on Java 16+, lambda type resolution will be unavailable (graceful degradation — non-lambda resolution still works).
+
+Supported JDKs:
+
+* Oracle JDK 8+
+* OpenJDK 8+
 
 #### On Unresolvable Lambda Type Arguments
 
