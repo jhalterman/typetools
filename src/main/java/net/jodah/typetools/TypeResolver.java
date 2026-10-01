@@ -15,11 +15,8 @@
  */
 package net.jodah.typetools;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -31,15 +28,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -52,21 +45,6 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  static final class LambdaConstants {
-  private final Object JAVA_LANG_ACCESS;
-  private final Method GET_CONSTANT_POOL;
-  private final Method GET_CONSTANT_POOL_SIZE;
-  private final Method GET_CONSTANT_POOL_METHOD_AT;
-  private final Map<String, Method> OBJECT_METHODS;
-
-    LambdaConstants(Object javaLangAccess, Method getConstantPool, Method getConstantPoolSize, Method getConstantPoolMethodAt, Map<String, Method> objectMethods) {
-      JAVA_LANG_ACCESS = javaLangAccess;
-      GET_CONSTANT_POOL = getConstantPool;
-      GET_CONSTANT_POOL_SIZE = getConstantPoolSize;
-      GET_CONSTANT_POOL_METHOD_AT = getConstantPoolMethodAt;
-      OBJECT_METHODS = objectMethods;
-    }
-  }
 
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final LambdaConstants LAMBDA_CONSTANTS;
@@ -74,7 +52,7 @@ public final class TypeResolver {
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-    LAMBDA_CONSTANTS = createLambdaConstants();
+    LAMBDA_CONSTANTS = LambdaConstantsResolver.resolve(JAVA_VERSION);
     PRIMITIVE_WRAPPERS = getPrimitiveWrappers();
   }
 
@@ -92,100 +70,6 @@ public final class TypeResolver {
     return Collections.unmodifiableMap(types);
   }
 
-  private static LambdaConstants createLambdaConstants() {
-    try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      Class<?> sharedSecretsClass;
-      AccessMaker accessSetter;
-      if (JAVA_VERSION < 9) {
-        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-        // Java 8 and lower can simply call setAccessible
-        accessSetter = new AccessMaker() {
-          @Override
-          public void makeAccessible(AccessibleObject accessibleObject) {
-            accessibleObject.setAccessible(true);
-          }
-        };
-      } else if (JAVA_VERSION < 12) {
-          try {
-            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-          } catch (ClassNotFoundException e) {
-            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          }
-          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
-          Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject accessibleObject) {
-              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
-            }
-        };
-      } else {
-          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invokeWithArguments(new Object[] {object, true});
-            }
-        };
-      }
-      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      accessSetter.makeAccessible(javaLangAccessGetter);
-      Object javaLangAccess = javaLangAccessGetter.invoke(null);
-      Method getConstantPool = javaLangAccess.getClass().getMethod("getConstantPool", Class.class);
-
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
-      Method getConstantPoolSize = constantPoolClass.getDeclaredMethod("getSize");
-      Method getConstantPoolMethodAt = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      accessSetter.makeAccessible(getConstantPool);
-      accessSetter.makeAccessible(getConstantPoolSize);
-      accessSetter.makeAccessible(getConstantPoolMethodAt);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = getConstantPool.invoke(javaLangAccess, Object.class);
-      getConstantPoolSize.invoke(constantPool);
-      Map<String, Method> objectMethods = new HashMap<String, Method>();
-      for (Method method : Object.class.getDeclaredMethods())
-        objectMethods.put(method.getName(), method);
-
-      return new LambdaConstants(
-              javaLangAccess,
-              getConstantPool,
-              getConstantPoolSize,
-              getConstantPoolMethodAt,
-              objectMethods
-      );
-    } catch (Throwable ignore) {
-    }
-    return null;
-  }
-  
-  private interface AccessMaker {
-    void makeAccessible(AccessibleObject object) throws Throwable;
-  }
-  
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
