@@ -1,7 +1,6 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
 name: build
+
+permissions: {}
 
 on: [push, pull_request]
 
@@ -11,16 +10,17 @@ jobs:
 
     strategy:
       matrix:
-        java: [ 8, 11, 17 ]
+        java: [ 8, 11, 17, 21, 25 ]
         jdk: ['temurin', 'zulu']
 
     name: Java ${{ matrix.java }} ${{ matrix.jdk }}
     steps:
       - name: Checkout Source Code
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup Java
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: ${{ matrix.jdk }}
           java-package: jdk
