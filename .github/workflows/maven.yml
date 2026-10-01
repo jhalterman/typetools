@@ -4,6 +4,10 @@ permissions: {}
 
 on: [push, pull_request]
 
+
+env:
+  MAVEN_ARGS: '--batch-mode -D"style.color=always"'
+
 jobs:
   compile:
     runs-on: ubuntu-latest
@@ -28,4 +32,4 @@ jobs:
           cache: 'maven'
 
       - name: Build with maven
-        run: mvn -B test
+        run: mvn verify
