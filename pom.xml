@@ -38,9 +38,6 @@
     </scm>
 
     <properties>
-        <devCompileVersion>1.8</devCompileVersion>
-        <releaseCompileVersion>1.6</releaseCompileVersion>
-
         <project.Automatic-Module-Name>net.jodah.typetools</project.Automatic-Module-Name>
         <project.build.outputTimestamp>1788287116</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -51,7 +48,7 @@
 
         <!-- Maven plugin versions -->
         <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
-        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
         <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
         <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
         <maven-enforcer-plugin.version>3.6.3</maven-enforcer-plugin.version>
@@ -237,14 +234,98 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jdk6-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <source>1.6</source>
+                            <target>1.6</target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk8-test-compile</id>
+                        <goals>
+                            <goal>
+                                testCompile
+                            </goal>
+                        </goals>
+                        <configuration>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                        </configuration>
+                    </execution>
+                </executions>
                 <configuration>
-                    <source>${devCompileVersion}</source>
-                    <target>${devCompileVersion}</target>
+                    <jdkToolchain>
+                        <version>8</version>
+                    </jdkToolchain>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jdk-8-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>8</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk-11-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>11</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk-17-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>17</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk-21-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>21</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk-25-test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>25</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -332,21 +413,6 @@
             <id>release</id>
             <build>
                 <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>default-compile</id>
-                                <configuration>
-                                    <compilerArguments>
-                                        <source>${releaseCompileVersion}</source>
-                                        <target>${releaseCompileVersion}</target>
-                                    </compilerArguments>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>

@@ -14,10 +14,9 @@ jobs:
 
     strategy:
       matrix:
-        java: [ 8, 11, 17, 21, 25 ]
         jdk: ['temurin', 'zulu']
 
-    name: Java ${{ matrix.java }} ${{ matrix.jdk }}
+    name: Java ${{ matrix.jdk }}
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,7 +27,12 @@ jobs:
         with:
           distribution: ${{ matrix.jdk }}
           java-package: jdk
-          java-version: ${{ matrix.java }}
+          java-version: |
+            8
+            11
+            17
+            21
+            25
           cache: 'maven'
 
       - name: Build with maven
