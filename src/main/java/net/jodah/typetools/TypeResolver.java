@@ -194,6 +194,8 @@ public final class TypeResolver {
    * @param subType to extract type variable information from
    * @return argument for {@code type} else {@link Unknown}.class if no type arguments are declared
    * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code type}
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Class<?> resolveRawArgument(Class<T> type, Class<S> subType) {
     return resolveRawArgument(resolveGenericType(type, subType), subType);
@@ -230,6 +232,8 @@ public final class TypeResolver {
    * @param subType to extract type variable information from
    * @return array of raw classes representing arguments for the {@code type} else {@code null} if no type arguments are
    *         declared
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Class<?>[] resolveRawArguments(Class<T> type, Class<S> subType) {
     return resolveRawArguments(resolveGenericType(type, subType), subType);
@@ -252,6 +256,8 @@ public final class TypeResolver {
    *         does not have exactly one upper bound, or does not have no lower bounds.
    * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
    *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Type reify(Class<T> type, Class<S> context) {
     return reify(resolveGenericType(type, context), getTypeVariableMap(context, null));
@@ -260,10 +266,10 @@ public final class TypeResolver {
   /**
    * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
    * by using the type information from given {@code context}.
-   *
+   * <p>
    * Generic types used as input to this method are commonly obtained using reflection, e.g. via
    * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
-   *
+   * <p>
    * Example:
    * <blockquote><pre>{@code
    *   class A<T> {
@@ -281,7 +287,7 @@ public final class TypeResolver {
    * is returned, but the input type is reified recursively.
    * Reifying the generic type of the field {@code something} with {@code B.class} as {@code context} will yield
    * {@code Number.class}.
-   *
+   * <p>
    * Note that type variables with no explicit upper bound are reified to {@link Object}, and {@code Unknown.class} is
    * never returned.
    *
@@ -304,10 +310,10 @@ public final class TypeResolver {
   /**
    * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible).
    * A convenience wrapper around {@link #reify(Type, Class)}, for when no context is needed/available.
-   *
+   * <p>
    * Generic types used as input to this method are commonly obtained using reflection, e.g. via
    * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
-   *
+   * <p>
    * Example:
    * <blockquote><pre>{@code
    *   class X {
@@ -575,7 +581,7 @@ public final class TypeResolver {
   }
 
   /**
-   * Populates the {@code map} with with variable/argument pairs for the given {@code types}.
+   * Populates the {@code map} with variable/argument pairs for the given {@code types}.
    */
   private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
       boolean depthFirst) {
@@ -640,6 +646,9 @@ public final class TypeResolver {
 
   /**
    * Resolves the first bound for the {@code typeVariable}, returning {@code Unknown.class} if none can be resolved.
+   *
+   * @param typeVariable to resolve the first bound for.
+   * @return the first bound for the {@code typeVariable} or {@code Unknown.class} if none can be resolved
    */
   public static Type resolveBound(TypeVariable<?> typeVariable) {
     Type[] bounds = typeVariable.getBounds();
