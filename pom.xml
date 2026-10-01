@@ -5,7 +5,7 @@
     <groupId>net.jodah</groupId>
     <artifactId>typetools</artifactId>
     <version>0.6.4-SNAPSHOT</version>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
     <name>TypeTools</name>
     <url>http://github.com/jhalterman/typetools/</url>
 
@@ -67,7 +67,7 @@
         <!-- Other Maven plugin versions -->
         <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
-        <maven-bundle-plugin.version>2.5.3</maven-bundle-plugin.version>
+        <maven-bundle-plugin.version>6.2.0</maven-bundle-plugin.version>
     </properties>
 
 
@@ -236,41 +236,117 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>jdk6-compile</id>
+                        <id>default-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
                             <source>1.6</source>
                             <target>1.6</target>
+                            <jdkToolchain>
+                                <version>8</version>
+                            </jdkToolchain>
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk8-test-compile</id>
+                        <id>jdk9-compile</id>
                         <goals>
-                            <goal>
-                                testCompile
-                            </goal>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>9</release>
+                            <jdkToolchain>
+                                <version>11</version>
+                            </jdkToolchain>
+                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+                            </compileSourceRoots>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk12-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>12</release>
+                            <jdkToolchain>
+                                <version>17</version>
+                            </jdkToolchain>
+                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java12</compileSourceRoot>
+                            </compileSourceRoots>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk25-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>25</release>
+                            <jdkToolchain>
+                                <version>25</version>
+                            </jdkToolchain>
+                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java25</compileSourceRoot>
+                            </compileSourceRoots>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <goals>
+                            <goal>testCompile</goal>
                         </goals>
                         <configuration>
                             <release>8</release>
+                            <jdkToolchain>
+                                <version>8</version>
+                            </jdkToolchain>
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                    <jdkToolchain>
-                        <version>8</version>
-                    </jdkToolchain>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/Issue*.java</include>
+                    </includes>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>jdk-8-test</id>
+                        <id>default-test</id>
                         <goals>
                             <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <jdkToolchain>
+                                <version>8</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/Issue*.java</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-integration-test</id>
+                        <goals>
+                            <goal>integration-test</goal>
                         </goals>
                         <configuration>
                             <jdkToolchain>
@@ -281,7 +357,7 @@
                     <execution>
                         <id>jdk-11-test</id>
                         <goals>
-                            <goal>test</goal>
+                            <goal>integration-test</goal>
                         </goals>
                         <configuration>
                             <jdkToolchain>
@@ -292,7 +368,7 @@
                     <execution>
                         <id>jdk-17-test</id>
                         <goals>
-                            <goal>test</goal>
+                            <goal>integration-test</goal>
                         </goals>
                         <configuration>
                             <jdkToolchain>
@@ -303,7 +379,7 @@
                     <execution>
                         <id>jdk-21-test</id>
                         <goals>
-                            <goal>test</goal>
+                            <goal>integration-test</goal>
                         </goals>
                         <configuration>
                             <jdkToolchain>
@@ -314,7 +390,7 @@
                     <execution>
                         <id>jdk-25-test</id>
                         <goals>
-                            <goal>test</goal>
+                            <goal>integration-test</goal>
                         </goals>
                         <configuration>
                             <jdkToolchain>
@@ -323,8 +399,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <configuration>
-                </configuration>
             </plugin>
 
             <plugin>
@@ -334,14 +408,24 @@
                     <archive>
                         <manifestEntries>
                             <Automatic-Module-Name>${project.Automatic-Module-Name}</Automatic-Module-Name>
+                            <Multi-Release>true</Multi-Release>
                         </manifestEntries>
+                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
                     </archive>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <id>bundle-manifest</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>manifest</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <instructions>
                         <Implementation-Title>${project.description}</Implementation-Title>
@@ -368,6 +452,11 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/META-INF/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

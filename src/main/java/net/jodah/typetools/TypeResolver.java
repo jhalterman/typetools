@@ -49,10 +49,19 @@ public final class TypeResolver {
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final LambdaConstants LAMBDA_CONSTANTS;
   private static final Double JAVA_VERSION;
+  private static final Map<String, Method> OBJECT_METHODS;
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-    LAMBDA_CONSTANTS = LambdaConstantsResolver.resolve(JAVA_VERSION);
+    LAMBDA_CONSTANTS = LambdaConstantsResolver.resolve();
+    if (LAMBDA_CONSTANTS == null) {
+      OBJECT_METHODS = Collections.emptyMap();
+    } else {
+      OBJECT_METHODS = new HashMap<String, Method>();
+      for (Method method : Object.class.getDeclaredMethods()) {
+        OBJECT_METHODS.put(method.getName(), method);
+      }
+    }
     PRIMITIVE_WRAPPERS = getPrimitiveWrappers();
   }
 
@@ -580,7 +589,7 @@ public final class TypeResolver {
       for (Method m : functionalInterface.getMethods()) {
         if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
           // Skip methods that override Object.class
-          Method objectMethod = LAMBDA_CONSTANTS.OBJECT_METHODS.get(m.getName());
+          Method objectMethod = OBJECT_METHODS.get(m.getName());
           if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
             continue;
 
