@@ -34,10 +34,67 @@ For example:
 sudo apt install temurin-8-jdk temurin-11-jdk temurin-17-jdk temurin-21-jdk temurin-25-jdk
 ```
 
-Then generate the `toolchains.xml` file:
+Then create a the `~/.m2/toolchains.xml` file. Note that the `version` for JDK 8
+must be 8, not 1.8.
 
-```shell
-mvn toolchains:generate-jdk-toolchains-xml -D"toolchain.file=~/.m2/toolchains.xml"
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<toolchains
+        xsi:schemaLocation="http://maven.apache.org/TOOLCHAINS/1.1.0 https://maven.apache.org/xsd/toolchains-1.1.0.xsd"
+        xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <lts>true</lts>
+            <version>25</version>
+        </provides>
+        <configuration>
+            <jdkHome>/usr/lib/jvm/temurin-25-jdk-amd64</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <lts>true</lts>
+            <version>21</version>
+        </provides>
+        <configuration>
+            <jdkHome>/usr/lib/jvm/temurin-21-jdk-amd64</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <lts>true</lts>
+            <version>17</version>
+        </provides>
+        <configuration>
+            <jdkHome>/usr/lib/jvm/temurin-17-jdk-amd64</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <lts>true</lts>
+            <version>11</version>
+        </provides>
+        <configuration>
+            <jdkHome>/usr/lib/jvm/temurin-11-jdk-amd64</jdkHome>
+        </configuration>
+    </toolchain>
+    <toolchain>
+        <type>jdk</type>
+        <provides>
+            <lts>true</lts>
+            <!-- Must be 8, not 1.8-->
+            <version>8</version>
+        </provides>
+        <configuration>
+            <jdkHome>/usr/lib/jvm/temurin-8-jdk-amd64</jdkHome>
+        </configuration>
+    </toolchain>
+</toolchains>
 ```
 
 To run the tests:
