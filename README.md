@@ -5,7 +5,7 @@
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
 
-A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
+A simple, zero-dependency library for working with types. Supports Java 8+ and Android.
 
 ## Introduction
 
@@ -145,8 +145,8 @@ TypeResolver.disableCache();
 
 Lambda type argument resolution is currently supported for:
 
-* Oracle JDK 8, 9
-* Open JDK 8, 9
+* Oracle JDK 8 up to 17
+* Open JDK 8 up to 17
 
 #### On Unresolvable Lambda Type Arguments
 
@@ -155,7 +155,7 @@ When resolving type arguments with lambda expressions, only type parameters used
 ```java
 interface ExtraFunction<T, R, Z> extends Function<T, R>{}
 ExtraFunction<String, Integer, Long> strToInt = s -> Integer.valueOf(s);
-Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, strToInt.getClass());
+Class<?>[] typeArgs = TypeResolver.resolveRawArguments(ExtraFunction.class, strToInt.getClass());
 
 assert typeArgs[0] == String.class;
 assert typeArgs[1] == Integer.class;
