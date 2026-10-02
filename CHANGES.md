@@ -1,8 +1,25 @@
 # 0.6.3
 
+### Bug Fixes
+
 * Added support for lambda type argument resolution in Java 12 and above.
 
+# 0.6.2
+
+### Bug Fixes
+
+* Export correct version with OSGI package
+* Added Automatic-Module-Name
+
+# 0.6.1
+
+### Bug Fixes
+
+* Fix stack overflow when reifying recursive types
+
 # 0.6.0
+
+### Improvements
 
 * Added support for reifying generics
 
