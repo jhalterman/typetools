@@ -143,10 +143,33 @@ TypeResolver.disableCache();
 
 #### On Lambda Support
 
-Lambda type argument resolution is currently supported for:
+Lambda type argument resolution is currently supported out of the box for Eclipse Temurin and Azul Zulu 8 through 21. 
+Lambda support depends on the constant pool which is not available on Android.
 
-* Oracle JDK 8, 9
-* Open JDK 8, 9
+On Java 22+ you will receive the following warning: 
+
+```
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by net.jodah.typetools.LambdaConstantsResolver (file:/home/mpkorstanje/Projects/github/jhalterman/typetools/target/typetools-0.6.4-SNAPSHOT.jar)
+WARNING: Please consider reporting this to the maintainers of class net.jodah.typetools.LambdaConstantsResolver
+WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
+```
+
+This warning can be avoided by using these JVM flags:
+
+```
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+--add-opens java.base/jdk.internal.access=ALL-UNNAMED
+--add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+```
+
+Or if you are using the module path:
+
+```
+--add-opens java.base/java.lang.reflect=net.jodah.typetools
+--add-opens java.base/jdk.internal.access=net.jodah.typetools
+--add-opens java.base/jdk.internal.reflect=net.jodah.typetools
+```
 
 #### On Unresolvable Lambda Type Arguments
 

@@ -281,18 +281,18 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk25-compile</id>
+                        <id>jdk23-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>25</release>
+                            <release>23</release>
                             <jdkToolchain>
                                 <version>25</version>
                             </jdkToolchain>
                             <multiReleaseOutput>true</multiReleaseOutput>
                             <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java25</compileSourceRoot>
+                                <compileSourceRoot>${project.basedir}/src/main/java23</compileSourceRoot>
                             </compileSourceRoots>
                         </configuration>
                     </execution>
@@ -398,6 +398,28 @@
                             </jdkToolchain>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>jdk-25-test-with-add-opens</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Deny unsafe memory access and open module to push
+                                 LambdaConstantsResolver to use MethodHandles.privateLookupIn.
+                                 Note: ALL-UNNAMED should be net.jodah.typetools but failsafe
+                                 doesn't put it on the module path.
+                             -->
+                            <argLine>
+                                --sun-misc-unsafe-memory-access=deny
+                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.access=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+                            </argLine>
+                            <jdkToolchain>
+                                <version>25</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
@@ -440,6 +462,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
