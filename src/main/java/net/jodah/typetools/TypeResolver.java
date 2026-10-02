@@ -15,11 +15,8 @@
  */
 package net.jodah.typetools;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -31,15 +28,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -52,99 +45,27 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static boolean RESOLVES_LAMBDAS;
-  private static Object JAVA_LANG_ACCESS;
-  private static Method GET_CONSTANT_POOL;
-  private static Method GET_CONSTANT_POOL_SIZE;
-  private static Method GET_CONSTANT_POOL_METHOD_AT;
-  private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
+
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
+  private static final LambdaConstants LAMBDA_CONSTANTS;
   private static final Double JAVA_VERSION;
+  private static final Map<String, Method> OBJECT_METHODS;
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-
-    try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      Class<?> sharedSecretsClass;
-      AccessMaker accessSetter;
-      if (JAVA_VERSION < 9) {
-        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-        // Java 8 and lower can simply call setAccessible
-        accessSetter = new AccessMaker() {
-          @Override
-          public void makeAccessible(AccessibleObject accessibleObject) {
-            accessibleObject.setAccessible(true);
-          }
-        };
-      } else if (JAVA_VERSION < 12) {
-          try {
-            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-          } catch (ClassNotFoundException e) {
-            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          }
-          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
-          Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject accessibleObject) {
-              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
-            }
-        };
-      } else {
-          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invokeWithArguments(new Object[] {object, true});
-            }
-        };
-      }
-      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      accessSetter.makeAccessible(javaLangAccessGetter);
-      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
-      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
-
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
-      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
-      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      accessSetter.makeAccessible(GET_CONSTANT_POOL);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
-      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-
-      for (Method method : Object.class.getDeclaredMethods())
+    LAMBDA_CONSTANTS = LambdaConstantsResolver.resolve();
+    if (LAMBDA_CONSTANTS == null) {
+      OBJECT_METHODS = Collections.emptyMap();
+    } else {
+      OBJECT_METHODS = new HashMap<String, Method>();
+      for (Method method : Object.class.getDeclaredMethods()) {
         OBJECT_METHODS.put(method.getName(), method);
-
-      RESOLVES_LAMBDAS = true;
-    } catch (Throwable ignore) {
+      }
     }
+    PRIMITIVE_WRAPPERS = getPrimitiveWrappers();
+  }
 
+  private static Map<Class<?>, Class<?>> getPrimitiveWrappers() {
     Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
     types.put(boolean.class, Boolean.class);
     types.put(byte.class, Byte.class);
@@ -155,13 +76,9 @@ public final class TypeResolver {
     types.put(long.class, Long.class);
     types.put(short.class, Short.class);
     types.put(void.class, Void.class);
-    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
+    return Collections.unmodifiableMap(types);
   }
-  
-  private interface AccessMaker {
-    void makeAccessible(AccessibleObject object) throws Throwable;
-  }
-  
+
   /** An unknown type. */
   public static final class Unknown {
     private Unknown() {
@@ -357,7 +274,7 @@ public final class TypeResolver {
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (RESOLVES_LAMBDAS && subType.isSynthetic()) {
+    if (LAMBDA_CONSTANTS != null && subType.isSynthetic()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
@@ -667,7 +584,7 @@ public final class TypeResolver {
    */
   private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
       Map<TypeVariable<?>, Type> map) {
-    if (RESOLVES_LAMBDAS) {
+    if (LAMBDA_CONSTANTS != null) {
       // Find SAM
       for (Method m : functionalInterface.getMethods()) {
         if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
@@ -730,7 +647,7 @@ public final class TypeResolver {
   private static Member getMemberRef(Class<?> type) {
     Object constantPool;
     try {
-      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
+      constantPool = LAMBDA_CONSTANTS.GET_CONSTANT_POOL.invoke(LAMBDA_CONSTANTS.JAVA_LANG_ACCESS, type);
     } catch (Exception ignore) {
       return null;
     }
@@ -767,7 +684,7 @@ public final class TypeResolver {
 
   private static int getConstantPoolSize(Object constantPool) {
     try {
-      return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+      return (Integer) LAMBDA_CONSTANTS.GET_CONSTANT_POOL_SIZE.invoke(constantPool);
     } catch (Exception ignore) {
       return 0;
     }
@@ -775,7 +692,7 @@ public final class TypeResolver {
 
   private static Member getConstantPoolMethodAt(Object constantPool, int i) {
     try {
-      return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
+      return (Member) LAMBDA_CONSTANTS.GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
     } catch (Exception ignore) {
       return null;
     }
