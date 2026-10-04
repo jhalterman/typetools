@@ -9,15 +9,11 @@ final class LambdaConstantsResolver {
     /* no-op */
   }
 
-  private interface AccessMaker {
-    void makeAccessible(AccessibleObject object) throws Throwable;
-  }
-
   static LambdaConstants resolve() {
     try {
       AccessMaker accessSetter = createAccessMaker();
-      Class<?> sharedSecretsClass = getSharedSecretsClass();
 
+      Class<?> sharedSecretsClass = getSharedSecretsClass();
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       Object javaLangAccess = javaLangAccessGetter.invoke(null);

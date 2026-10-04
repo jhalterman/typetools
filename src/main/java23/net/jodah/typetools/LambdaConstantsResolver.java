@@ -13,10 +13,6 @@ final class LambdaConstantsResolver {
     /* no-op */
   }
 
-  private interface AccessMaker {
-    void makeAccessible(AccessibleObject object) throws Throwable;
-  }
-
   static LambdaConstants resolve() {
     try {
       AccessMaker accessSetter = createAccessMaker();
