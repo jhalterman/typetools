@@ -1,8 +1,9 @@
 # TypeTools
-[![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools/badge.svg)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
+
+[![Build Status](https://github.com/jhalterman/typetools/actions/workflows/maven.yaml/badge.svg)](https://github.com/jhalterman/typetools/actions/workflows/maven.yaml)
+[![Maven Central](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&colorB=53C92E)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
-[![JavaDoc](http://javadoc-badge.appspot.com/net.jodah/typetools.svg?label=javadoc)](https://jhalterman.github.com/typetools/javadoc)
+[![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
 
 A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
 
@@ -66,7 +67,7 @@ We can [reify] more complex generic type parameters:
 interface Foo<T> {}
 class Bar implements Foo<List<Integer>> {}
 
-Type typeArgs = TypeResolver.reify(Foo.class, bar.class);
+Type typeArgs = TypeResolver.reify(Foo.class, Bar.class);
 
 ParameterizedType paramType = (ParameterizedType) typeArgs;
 Type[] actualTypeArgs = paramType.getActualTypeArguments();
@@ -142,10 +143,33 @@ TypeResolver.disableCache();
 
 #### On Lambda Support
 
-Lambda type argument resolution is currently supported for:
+Lambda type argument resolution is currently supported out of the box for Eclipse Temurin and Azul Zulu 8 through 21. 
+Lambda support depends on the constant pool which is not available on Android.
 
-* Oracle JDK 8, 9
-* Open JDK 8, 9
+On Java 22+ you will receive the following warning: 
+
+```
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by net.jodah.typetools.TypeResolverUtil22
+WARNING: Please consider reporting this to the maintainers of class net.jodah.typetools.TypeResolverUtil22
+WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
+```
+
+This warning can be avoided by using these JVM flags:
+
+```
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+--add-opens java.base/jdk.internal.access=ALL-UNNAMED
+--add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+```
+
+Or if you are using the module path:
+
+```
+--add-opens java.base/java.lang.reflect=net.jodah.typetools
+--add-opens java.base/jdk.internal.access=net.jodah.typetools
+--add-opens java.base/jdk.internal.reflect=net.jodah.typetools
+```
 
 #### On Unresolvable Lambda Type Arguments
 
@@ -173,11 +197,11 @@ org.osgi.framework.system.packages.extra=sun.reflect
 
 ## Docs
 
-JavaDocs are available [here](https://jhalterman.github.com/typetools/javadoc).
+JavaDocs are available [here](https://jodah.net/typetools/javadoc).
 
 ## License
 
-Copyright 2010-2019 Jonathan Halterman and friends. Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
+Copyright Jonathan Halterman and friends. Released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 
 [resolve-raw-args]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#resolveRawArguments-java.lang.Class-java.lang.Class-
 [reify]: http://jodah.net/typetools/javadoc/net/jodah/typetools/TypeResolver.html#reify-java.lang.Class-java.lang.Class-
