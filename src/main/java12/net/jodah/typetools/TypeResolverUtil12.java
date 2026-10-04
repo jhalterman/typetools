@@ -6,10 +6,16 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 
-final class TypeResolverUtil {
+/**
+ * Unique name so Jacoco can see the coverage
+ */
+final class TypeResolverUtil12 {
 
-  private TypeResolverUtil() {
+  private TypeResolverUtil12() {
     /* no-op */
   }
 
@@ -38,13 +44,12 @@ final class TypeResolverUtil {
     return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 
-  @SuppressWarnings("removal")
-  private static AccessMaker createAccessMakerUsingUnsafe() throws NoSuchFieldException, IllegalAccessException {
-    // Fall back to IMPL_LOOKUP via sun.misc.Unsafe
-    // On Java 22+ this will warn that sun.misc.Unsafe::staticFieldOffset has been terminally deprecated
-    Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-    theUnsafeField.setAccessible(true);
-    Unsafe unsafe = (Unsafe) theUnsafeField.get(null);
+  private static AccessMaker createAccessMakerUsingUnsafe() throws PrivilegedActionException, NoSuchFieldException, IllegalAccessException {
+    Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
+      Field f = Unsafe.class.getDeclaredField("theUnsafe");
+      f.setAccessible(true);
+      return (Unsafe) f.get(null);
+    });
 
     // In Java 12, AccessibleObject.override was added to the reflection blacklist.
     // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.

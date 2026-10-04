@@ -281,18 +281,18 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk23-compile</id>
+                        <id>jdk22-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>23</release>
+                            <release>22</release>
                             <jdkToolchain>
                                 <version>25</version>
                             </jdkToolchain>
                             <multiReleaseOutput>true</multiReleaseOutput>
                             <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java23</compileSourceRoot>
+                                <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
                             </compileSourceRoots>
                         </configuration>
                     </execution>
@@ -366,6 +366,29 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>jdk-11-test-with-add-opens</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Open module to push TypeResolverUtil to use
+                                 MethodHandles.privateLookupIn.
+                                 Note: ALL-UNNAMED should be net.jodah.typetools but failsafe
+                                 doesn't put it on the module path.
+                             -->
+                            <argLine>
+                                @{argLine}
+                                --sun-misc-unsafe-memory-access=deny
+                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.access=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+                            </argLine>
+                            <jdkToolchain>
+                                <version>11</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>jdk-17-test</id>
                         <goals>
                             <goal>integration-test</goal>
@@ -377,11 +400,55 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>jdk-17-test-with-add-opens</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Open module to push TypeResolverUtil to use
+                                 MethodHandles.privateLookupIn.
+                                 Note: ALL-UNNAMED should be net.jodah.typetools but failsafe
+                                 doesn't put it on the module path.
+                             -->
+                            <argLine>
+                                @{argLine}
+                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.access=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+                            </argLine>
+                            <jdkToolchain>
+                                <version>17</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>jdk-21-test</id>
                         <goals>
                             <goal>integration-test</goal>
                         </goals>
                         <configuration>
+                            <jdkToolchain>
+                                <version>21</version>
+                            </jdkToolchain>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk-21-test-with-add-opens</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Open module to push TypeResolverUtil to use
+                                 MethodHandles.privateLookupIn.
+                                 Note: ALL-UNNAMED should be net.jodah.typetools but failsafe
+                                 doesn't put it on the module path.
+                             -->
+                            <argLine>
+                                @{argLine}
+                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.access=ALL-UNNAMED
+                                --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+                            </argLine>
                             <jdkToolchain>
                                 <version>21</version>
                             </jdkToolchain>
@@ -404,12 +471,13 @@
                             <goal>integration-test</goal>
                         </goals>
                         <configuration>
-                            <!-- Deny unsafe memory access and open module to push
-                                 LambdaConstantsResolver to use MethodHandles.privateLookupIn.
+                            <!-- Deny unsafe memory access  and open module to
+                                 push TypeResolverUtil to use MethodHandles.privateLookupIn.
                                  Note: ALL-UNNAMED should be net.jodah.typetools but failsafe
                                  doesn't put it on the module path.
                              -->
                             <argLine>
+                                @{argLine}
                                 --sun-misc-unsafe-memory-access=deny
                                 --add-opens java.base/java.lang.reflect=ALL-UNNAMED
                                 --add-opens java.base/jdk.internal.access=ALL-UNNAMED
@@ -479,11 +547,14 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>**/META-INF/**</exclude>
+                        <!-- Jacoco expects all classes to be unique, but
+                             this class can't be unique because it is multi-released. -->
+                        <exclude>**/META-INF/versions/**/TypeResolverUtil.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
                     <execution>
+                        <id>prepare-agent</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
@@ -493,6 +564,19 @@
                         <phase>test</phase>
                         <goals>
                             <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report-integration</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-integration</goal>
                         </goals>
                     </execution>
                 </executions>
