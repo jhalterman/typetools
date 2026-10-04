@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.logging.Logger;
 
 /**
  * Enhanced type resolution utilities.
@@ -41,31 +42,52 @@ import java.util.WeakHashMap;
  */
 @SuppressWarnings("restriction")
 public final class TypeResolver {
+
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-
+  private static boolean RESOLVES_LAMBDAS;
+  private static Object JAVA_LANG_ACCESS;
+  private static Method GET_CONSTANT_POOL;
+  private static Method GET_CONSTANT_POOL_SIZE;
+  private static Method GET_CONSTANT_POOL_METHOD_AT;
+  private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
-  private static final LambdaConstants LAMBDA_CONSTANTS;
   private static final Double JAVA_VERSION;
-  private static final Map<String, Method> OBJECT_METHODS;
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-    LAMBDA_CONSTANTS = LambdaConstantsResolver.resolve();
-    if (LAMBDA_CONSTANTS == null) {
-      OBJECT_METHODS = Collections.emptyMap();
-    } else {
-      OBJECT_METHODS = new HashMap<String, Method>();
-      for (Method method : Object.class.getDeclaredMethods()) {
-        OBJECT_METHODS.put(method.getName(), method);
-      }
-    }
-    PRIMITIVE_WRAPPERS = getPrimitiveWrappers();
-  }
+    try {
+      AccessMaker accessSetter = LambdaConstantsResolver.createAccessMaker();
 
-  private static Map<Class<?>, Class<?>> getPrimitiveWrappers() {
+      Class<?> sharedSecretsClass = LambdaConstantsResolver.getSharedSecretsClass();
+      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
+      accessSetter.makeAccessible(javaLangAccessGetter);
+      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
+      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
+
+      Class<?> constantPoolClass = LambdaConstantsResolver.getConstantPoolClass();
+      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
+      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
+
+      // setting the methods as accessible
+      accessSetter.makeAccessible(GET_CONSTANT_POOL);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
+
+      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
+      // ConstantPool::getSize on a class
+      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
+      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+
+      for (Method method : Object.class.getDeclaredMethods())
+        OBJECT_METHODS.put(method.getName(), method);
+
+      RESOLVES_LAMBDAS = true;
+    } catch (Throwable ignore) {
+    }
+
     Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
     types.put(boolean.class, Boolean.class);
     types.put(byte.class, Byte.class);
@@ -76,7 +98,7 @@ public final class TypeResolver {
     types.put(long.class, Long.class);
     types.put(short.class, Short.class);
     types.put(void.class, Void.class);
-    return Collections.unmodifiableMap(types);
+    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
   }
 
   /** An unknown type. */
@@ -274,7 +296,7 @@ public final class TypeResolver {
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (LAMBDA_CONSTANTS != null && subType.isSynthetic()) {
+    if (RESOLVES_LAMBDAS && subType.isSynthetic()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
@@ -584,7 +606,7 @@ public final class TypeResolver {
    */
   private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
       Map<TypeVariable<?>, Type> map) {
-    if (LAMBDA_CONSTANTS != null) {
+    if (RESOLVES_LAMBDAS) {
       // Find SAM
       for (Method m : functionalInterface.getMethods()) {
         if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
@@ -647,7 +669,7 @@ public final class TypeResolver {
   private static Member getMemberRef(Class<?> type) {
     Object constantPool;
     try {
-      constantPool = LAMBDA_CONSTANTS.GET_CONSTANT_POOL.invoke(LAMBDA_CONSTANTS.JAVA_LANG_ACCESS, type);
+      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
     } catch (Exception ignore) {
       return null;
     }
@@ -684,7 +706,7 @@ public final class TypeResolver {
 
   private static int getConstantPoolSize(Object constantPool) {
     try {
-      return (Integer) LAMBDA_CONSTANTS.GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+      return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
     } catch (Exception ignore) {
       return 0;
     }
@@ -692,7 +714,7 @@ public final class TypeResolver {
 
   private static Member getConstantPoolMethodAt(Object constantPool, int i) {
     try {
-      return (Member) LAMBDA_CONSTANTS.GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
+      return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
     } catch (Exception ignore) {
       return null;
     }
