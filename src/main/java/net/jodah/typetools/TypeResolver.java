@@ -701,6 +701,17 @@ public final class TypeResolver {
   }
 
   /**
+   * Using some low-level instruction technology may add some members into the constant pool. The generated members
+   * could make {@link TypeResolver} to return a wrong type. To avoid this, use {@code addLambdaMemberFilter} to
+   * add a custom lambda member filter to skip wrong members.
+   *
+   * @param lambdaMemberFilter to add
+   */
+  public static synchronized void addLambdaMemberFilter(Predicate<Member> lambdaMemberFilter) {
+    LAMBDA_MEMBER_FILTERS.add(lambdaMemberFilter);
+  }
+
+  /**
    * test member by custom lambda member filters, using OR operator.
    */
   private static boolean testAllLambdaMemberFilters(Member member) {
