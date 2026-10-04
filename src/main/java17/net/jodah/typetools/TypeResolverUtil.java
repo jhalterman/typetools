@@ -7,15 +7,15 @@ final class TypeResolverUtil {
   }
 
   static Class<?> getConstantPoolClass() throws Throwable {
-    return TypeResolverUtil22.getConstantPoolClass();
+    return TypeResolverUtil17.getConstantPoolClass();
   }
 
   static Class<?> getSharedSecretsClass() throws Throwable {
-   return TypeResolverUtil22.getSharedSecretsClass();
+   return TypeResolverUtil17.getSharedSecretsClass();
   }
 
   static AccessMaker createAccessMaker() throws Throwable {
-    return TypeResolverUtil22.createAccessMaker();
+    return TypeResolverUtil17.createAccessMaker();
   }
 
 }

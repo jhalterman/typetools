@@ -281,18 +281,18 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk22-compile</id>
+                        <id>jdk17-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>22</release>
+                            <release>17</release>
                             <jdkToolchain>
                                 <version>25</version>
                             </jdkToolchain>
                             <multiReleaseOutput>true</multiReleaseOutput>
                             <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
+                                <compileSourceRoot>${project.basedir}/src/main/java17</compileSourceRoot>
                             </compileSourceRoots>
                         </configuration>
                     </execution>

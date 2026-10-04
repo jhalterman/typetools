@@ -10,9 +10,9 @@ import java.lang.reflect.Field;
 /**
  * Unique name so Jacoco can see the coverage
  */
-final class TypeResolverUtil22 {
+final class TypeResolverUtil17 {
 
-  private TypeResolverUtil22() {
+  private TypeResolverUtil17() {
     /* no-op */
   }
 
@@ -41,10 +41,8 @@ final class TypeResolverUtil22 {
     return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 
-  @SuppressWarnings("removal")
   private static AccessMaker createAccessMakerUsingUnsafe() throws NoSuchFieldException, IllegalAccessException {
-    // Fall back to IMPL_LOOKUP via sun.misc.Unsafe
-    // On Java 22+ this will warn that sun.misc.Unsafe::staticFieldOffset has been terminally deprecated
+    // Access controller has been deprecated, get unsafe directly.
     Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
     theUnsafeField.setAccessible(true);
     Unsafe unsafe = (Unsafe) theUnsafeField.get(null);
