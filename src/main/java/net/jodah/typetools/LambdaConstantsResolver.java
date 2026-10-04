@@ -16,15 +16,14 @@ final class LambdaConstantsResolver {
   static LambdaConstants resolve() {
     try {
       AccessMaker accessSetter = createAccessMaker();
+      Class<?> sharedSecretsClass = getSharedSecretsClass();
 
-      Class<?> sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       Object javaLangAccess = javaLangAccessGetter.invoke(null);
       Method getConstantPool = javaLangAccess.getClass().getMethod("getConstantPool", Class.class);
 
-      String constantPoolName = "sun.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
+      Class<?> constantPoolClass = getConstantPoolClass();
       Method getConstantPoolSize = constantPoolClass.getDeclaredMethod("getSize");
       Method getConstantPoolMethodAt = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
@@ -37,6 +36,7 @@ final class LambdaConstantsResolver {
       // ConstantPool::getSize on a class
       Object constantPool = getConstantPool.invoke(javaLangAccess, Object.class);
       getConstantPoolSize.invoke(constantPool);
+
       return new LambdaConstants(
           javaLangAccess,
           getConstantPool,
@@ -46,6 +46,14 @@ final class LambdaConstantsResolver {
     } catch (Throwable ignore) {
     }
     return null;
+  }
+
+  private static Class<?> getConstantPoolClass() throws ClassNotFoundException {
+    return Class.forName("sun.reflect.ConstantPool");
+  }
+
+  private static Class<?> getSharedSecretsClass() throws ClassNotFoundException {
+      return Class.forName("sun.misc.SharedSecrets");
   }
 
   private static AccessMaker createAccessMaker() {

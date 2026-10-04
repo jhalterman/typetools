@@ -21,23 +21,15 @@ final class LambdaConstantsResolver {
 
   static LambdaConstants resolve() {
     try {
-      AccessMaker accessSetter = createAccessMakerUsingUnsafe();
-
-      Class<?> sharedSecretsClass;
-      try {
-        sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-      } catch (ClassNotFoundException e) {
-        // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-        sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-      }
+      AccessMaker accessSetter = createAccessMaker();
+      Class<?> sharedSecretsClass = getSharedSecretsClass();
 
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       Object javaLangAccess = javaLangAccessGetter.invoke(null);
       Method getConstantPool = javaLangAccess.getClass().getMethod("getConstantPool", Class.class);
 
-      String constantPoolName = "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
+      Class<?> constantPoolClass = getConstantPoolClass();
       Method getConstantPoolSize = constantPoolClass.getDeclaredMethod("getSize");
       Method getConstantPoolMethodAt = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
@@ -62,13 +54,30 @@ final class LambdaConstantsResolver {
     return null;
   }
 
+  private static Class<?> getConstantPoolClass() throws ClassNotFoundException {
+    return Class.forName("jdk.internal.reflect.ConstantPool");
+  }
+
+  private static AccessMaker createAccessMaker() throws PrivilegedActionException, NoSuchFieldException {
+    return createAccessMakerUsingUnsafe();
+  }
+
+  private static Class<?> getSharedSecretsClass() throws ClassNotFoundException {
+      try {
+        return Class.forName("jdk.internal.misc.SharedSecrets");
+    } catch (ClassNotFoundException e) {
+      // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
+        return Class.forName("jdk.internal.access.SharedSecrets");
+    }
+  }
+
   private static AccessMaker createAccessMakerUsingUnsafe() throws PrivilegedActionException, NoSuchFieldException {
     final Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
       final Field f = Unsafe.class.getDeclaredField("theUnsafe");
       f.setAccessible(true);
       return (Unsafe) f.get(null);
     });
-    // access control got strengthed in Java 9, but can be circumvented with Unsafe.
+    // access control got strengthened in Java 9, but can be circumvented with Unsafe.
     Field overrideField = AccessibleObject.class.getDeclaredField("override");
     final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
     return accessibleObject -> unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);

@@ -21,14 +21,13 @@ final class LambdaConstantsResolver {
     try {
       AccessMaker accessSetter = createAccessMaker();
 
-      Class<?> sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
+      Class<?> sharedSecretsClass = getSharedSecretsClass();
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       Object javaLangAccess = javaLangAccessGetter.invoke(null);
       Method getConstantPool = javaLangAccess.getClass().getMethod("getConstantPool", Class.class);
 
-      String constantPoolName = "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
+      Class<?> constantPoolClass = getConstantPoolClass();
       Method getConstantPoolSize = constantPoolClass.getDeclaredMethod("getSize");
       Method getConstantPoolMethodAt = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
@@ -51,6 +50,14 @@ final class LambdaConstantsResolver {
     } catch (Throwable ignore) {
     }
     return null;
+  }
+
+  private static Class<?> getSharedSecretsClass() throws ClassNotFoundException {
+      return Class.forName("jdk.internal.access.SharedSecrets");
+  }
+
+  private static Class<?> getConstantPoolClass() throws ClassNotFoundException {
+      return Class.forName("jdk.internal.reflect.ConstantPool");
   }
 
   private static AccessMaker createAccessMaker() throws NoSuchFieldException, ClassNotFoundException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
