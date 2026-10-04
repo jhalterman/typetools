@@ -8,6 +8,7 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.AccessController;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
 final class LambdaConstantsResolver {
@@ -22,29 +23,7 @@ final class LambdaConstantsResolver {
 
   static LambdaConstants resolve() {
     try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-      // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-      Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-      long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-      Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-      MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-      final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-      AccessMaker accessSetter = new AccessMaker() {
-        @Override
-        public void makeAccessible(AccessibleObject object) throws Throwable {
-          overrideSetter.invokeWithArguments(new Object[]{object, true});
-        }
-      };
+      AccessMaker accessSetter = createAccessMakerUsingUnsafe();
 
       Class<?> sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
@@ -76,5 +55,22 @@ final class LambdaConstantsResolver {
     } catch (Throwable ignore) {
     }
     return null;
+  }
+
+  private static AccessMaker createAccessMakerUsingUnsafe() throws PrivilegedActionException, NoSuchFieldException, IllegalAccessException {
+    final Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
+      final Field f = Unsafe.class.getDeclaredField("theUnsafe");
+      f.setAccessible(true);
+      return (Unsafe) f.get(null);
+    });
+
+    // In Java 12, AccessibleObject.override was added to the reflection blacklist.
+    // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
+    Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+    long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
+    Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
+    MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
+    final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+    return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 }

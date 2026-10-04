@@ -15,13 +15,7 @@ final class LambdaConstantsResolver {
 
   static LambdaConstants resolve() {
     try {
-      // Java 8 and lower can simply call setAccessible
-      AccessMaker accessSetter = new AccessMaker() {
-        @Override
-        public void makeAccessible(AccessibleObject accessibleObject) {
-          accessibleObject.setAccessible(true);
-        }
-      };
+      AccessMaker accessSetter = createAccessMaker();
 
       Class<?> sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
@@ -52,5 +46,15 @@ final class LambdaConstantsResolver {
     } catch (Throwable ignore) {
     }
     return null;
+  }
+
+  private static AccessMaker createAccessMaker() {
+    // Java 8 and lower can simply call setAccessible
+    return new AccessMaker() {
+      @Override
+      public void makeAccessible(AccessibleObject accessibleObject) {
+        accessibleObject.setAccessible(true);
+      }
+    };
   }
 }
