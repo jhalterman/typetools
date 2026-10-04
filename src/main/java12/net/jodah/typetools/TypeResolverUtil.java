@@ -21,16 +21,29 @@ final class TypeResolverUtil {
   }
 
   static Class<?> getSharedSecretsClass() throws Throwable {
-      return Class.forName("jdk.internal.access.SharedSecrets");
+    return Class.forName("jdk.internal.access.SharedSecrets");
   }
 
   static AccessMaker createAccessMaker() throws Throwable {
-    return createAccessMakerUsingUnsafe();
+    try {
+      // If --add-opens flags are present we can use MethodHandles.privateLookupIn()
+      return createAccessMakerUsingMethodHandle();
+    } catch (IllegalAccessException ignored) {
+      // Fall back to IMPL_LOOKUP via sun.misc.Unsafe
+      // On Java 22+ this will warn that sun.misc.Unsafe::staticFieldOffset has been terminally deprecated
+      return createAccessMakerUsingUnsafe();
+    }
+  }
+
+  private static AccessMaker createAccessMakerUsingMethodHandle() throws IllegalAccessException, NoSuchFieldException {
+    MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(AccessibleObject.class, MethodHandles.lookup());
+    MethodHandle overrideSetter = lookup.findSetter(AccessibleObject.class, "override", boolean.class);
+    return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 
   private static AccessMaker createAccessMakerUsingUnsafe() throws PrivilegedActionException, NoSuchFieldException, IllegalAccessException {
-    final Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
-      final Field f = Unsafe.class.getDeclaredField("theUnsafe");
+    Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
+      Field f = Unsafe.class.getDeclaredField("theUnsafe");
       f.setAccessible(true);
       return (Unsafe) f.get(null);
     });
@@ -41,7 +54,7 @@ final class TypeResolverUtil {
     long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
     Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
     MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-    final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
+    MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
     return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 

@@ -13,10 +13,10 @@ final class TypeResolverUtil {
   }
 
   static Class<?> getSharedSecretsClass() throws Throwable {
-      return Class.forName("sun.misc.SharedSecrets");
+    return Class.forName("sun.misc.SharedSecrets");
   }
 
-  static AccessMaker createAccessMaker() throws Throwable{
+  static AccessMaker createAccessMaker() throws Throwable {
     // Java 8 and lower can simply call setAccessible
     return new AccessMaker() {
       @Override
