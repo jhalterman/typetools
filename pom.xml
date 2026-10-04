@@ -280,18 +280,18 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk17-compile</id>
+                        <id>jdk22-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>17</release>
+                            <release>22</release>
                             <jdkToolchain>
                                 <version>25</version>
                             </jdkToolchain>
                             <multiReleaseOutput>true</multiReleaseOutput>
                             <compileSourceRoots>
-                                <compileSourceRoot>${project.basedir}/src/main/java17</compileSourceRoot>
+                                <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
                             </compileSourceRoots>
                         </configuration>
                     </execution>
@@ -576,6 +576,40 @@
                         <goals>
                             <goal>report-integration</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check-integration</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <dataFile>target/jacoco-it.exec</dataFile>
+                            <rules>
+                                <rule>
+                                    <!-- All classes should be covered -->
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>CLASS</counter>
+                                            <value>MISSEDCOUNT</value>
+                                            <maximum>0</maximum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                                <rule>
+                                    <!-- Nearly all instructions should be covered -->
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.93</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -10,9 +10,9 @@ import java.lang.reflect.Field;
 /**
  * Unique name so Jacoco can see the coverage
  */
-final class TypeResolverUtil17 {
+final class TypeResolverUtil22 {
 
-  private TypeResolverUtil17() {
+  private TypeResolverUtil22() {
     /* no-op */
   }
 
@@ -41,8 +41,9 @@ final class TypeResolverUtil17 {
     return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
   }
 
+  @SuppressWarnings("removal")
   private static AccessMaker createAccessMakerUsingUnsafe() throws NoSuchFieldException, IllegalAccessException {
-    // Access controller has been deprecated, get unsafe directly.
+    // AccessController.doPrivileged deprecated and now a no-op
     Field theUnsafeField = Unsafe.class.getDeclaredField("theUnsafe");
     theUnsafeField.setAccessible(true);
     Unsafe unsafe = (Unsafe) theUnsafeField.get(null);
