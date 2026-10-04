@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Use a multi-release jar and provide `module-info.java` on JDK 23+
+- Use a multi-release jar and provide `module-info.java` on JDK 9+. 
 
 ### Fixed
-- Use `MethodHandle` before using `sun.misc.Unsafe` on Java 23+
+- Use `MethodHandle` before using `sun.misc.Unsafe` on Java 9+. See notes
+  [On Lambda Support](./README.md#on-lambda-support) for details of how to
+  suppress warnings on JDK 25+.
 
 ## [0.6.3]
 ### Fixed
