@@ -38,7 +38,6 @@
     </scm>
 
     <properties>
-        <project.Automatic-Module-Name>net.jodah.typetools</project.Automatic-Module-Name>
         <project.build.outputTimestamp>1788287116</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.propertiesEncoding>UTF-8</project.build.propertiesEncoding>
@@ -497,7 +496,6 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>${project.Automatic-Module-Name}</Automatic-Module-Name>
                             <Multi-Release>true</Multi-Release>
                         </manifestEntries>
                         <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
