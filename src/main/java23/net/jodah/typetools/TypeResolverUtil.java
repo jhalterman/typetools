@@ -6,9 +6,9 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
-final class LambdaConstantsResolver {
+final class TypeResolverUtil {
 
-  private LambdaConstantsResolver() {
+  private TypeResolverUtil() {
     /* no-op */
   }
 

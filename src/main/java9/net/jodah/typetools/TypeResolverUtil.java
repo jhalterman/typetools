@@ -8,9 +8,9 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-final class LambdaConstantsResolver {
+final class TypeResolverUtil {
 
-  private LambdaConstantsResolver() {
+  private TypeResolverUtil() {
     /* no-op */
   }
 

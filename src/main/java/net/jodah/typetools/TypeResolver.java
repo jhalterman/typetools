@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.logging.Logger;
 
 /**
  * Enhanced type resolution utilities.
@@ -59,15 +58,15 @@ public final class TypeResolver {
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
     try {
-      AccessMaker accessSetter = LambdaConstantsResolver.createAccessMaker();
+      AccessMaker accessSetter = TypeResolverUtil.createAccessMaker();
 
-      Class<?> sharedSecretsClass = LambdaConstantsResolver.getSharedSecretsClass();
+      Class<?> sharedSecretsClass = TypeResolverUtil.getSharedSecretsClass();
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
       GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
 
-      Class<?> constantPoolClass = LambdaConstantsResolver.getConstantPoolClass();
+      Class<?> constantPoolClass = TypeResolverUtil.getConstantPoolClass();
       GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
       GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 

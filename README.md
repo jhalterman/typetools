@@ -150,8 +150,8 @@ On Java 22+ you will receive the following warning:
 
 ```
 WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
-WARNING: sun.misc.Unsafe::staticFieldOffset has been called by net.jodah.typetools.LambdaConstantsResolver (file:/home/mpkorstanje/Projects/github/jhalterman/typetools/target/typetools-0.6.4-SNAPSHOT.jar)
-WARNING: Please consider reporting this to the maintainers of class net.jodah.typetools.LambdaConstantsResolver
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by net.jodah.typetools.TypeResolverUtil (file:/home/mpkorstanje/Projects/github/jhalterman/typetools/target/typetools-0.6.4-SNAPSHOT.jar)
+WARNING: Please consider reporting this to the maintainers of class net.jodah.typetools.TypeResolverUtil
 WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
 ```
 

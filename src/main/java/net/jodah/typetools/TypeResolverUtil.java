@@ -2,9 +2,9 @@ package net.jodah.typetools;
 
 import java.lang.reflect.AccessibleObject;
 
-final class LambdaConstantsResolver {
+final class TypeResolverUtil {
 
-  private LambdaConstantsResolver() {
+  private TypeResolverUtil() {
     /* no-op */
   }
 
