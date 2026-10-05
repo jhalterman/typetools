@@ -118,27 +118,34 @@ class ReifiedParameterizedType implements ParameterizedType {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof ParameterizedType)) {
         return false;
       }
 
-      ReifiedParameterizedType that = (ReifiedParameterizedType) o;
-      if (!original.equals(that.original)) {
+      ParameterizedType that = (ParameterizedType) o;
+      if (!getRawType().equals(that.getRawType())) {
+        return false;
+      }
+      Type ownerType = getOwnerType();
+      if (ownerType == null ? that.getOwnerType() != null : !ownerType.equals(that.getOwnerType())) {
         return false;
       }
 
-      if (reifiedTypeArguments.length != that.reifiedTypeArguments.length) {
+      Type[] thatArguments = that.getActualTypeArguments();
+      if (reifiedTypeArguments.length != thatArguments.length) {
         return false;
       }
 
       for (int i = 0; i < reifiedTypeArguments.length; i++) {
-        if (loop[i] != that.loop[i]) {
+        boolean thatLoop = that instanceof ReifiedParameterizedType && ((ReifiedParameterizedType) that).loop[i];
+        if (loop[i] != thatLoop) {
           return false;
         }
         if (loop[i]) {
           continue;
         }
-        if (reifiedTypeArguments[i] != that.reifiedTypeArguments[i]) {
+        Type argument = reifiedTypeArguments[i];
+        if (argument == null ? thatArguments[i] != null : !argument.equals(thatArguments[i])) {
           return false;
         }
       }
@@ -147,15 +154,12 @@ class ReifiedParameterizedType implements ParameterizedType {
 
     @Override
     public int hashCode() {
-      int result = original.hashCode();
+      int argumentsHash = 1;
       for (int i = 0; i < reifiedTypeArguments.length; i++) {
-        if (loop[i]) {
-          continue;
-        }
-        if (reifiedTypeArguments[i] instanceof ReifiedParameterizedType) {
-          result = 31 * result + reifiedTypeArguments[i].hashCode();
-        }
+        argumentsHash = 31 * argumentsHash
+            + (loop[i] || reifiedTypeArguments[i] == null ? 0 : reifiedTypeArguments[i].hashCode());
       }
-      return result;
+      Type ownerType = getOwnerType();
+      return argumentsHash ^ getRawType().hashCode() ^ (ownerType == null ? 0 : ownerType.hashCode());
     }
   }

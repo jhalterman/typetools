@@ -30,6 +30,53 @@ import net.jodah.typetools.TypeResolver.Unknown;
 @Test
 @SuppressWarnings("serial")
 public class TypeResolverTest extends AbstractTypeResolverTest {
+  static class EqualityTypes<T> {
+    List<List<String>> nested;
+    List<T> generic;
+    List<String> strings;
+    List<Integer> integers;
+  }
+
+  static class StringEqualityTypes extends EqualityTypes<String> {
+  }
+
+  public void shouldCompareReifiedNestedTypesStructurally() throws Exception {
+    Type declared = EqualityTypes.class.getDeclaredField("nested").getGenericType();
+    Type first = TypeResolver.reify(declared);
+    Type second = TypeResolver.reify(declared);
+
+    assertEquals(first, second);
+    assertEquals(first.hashCode(), second.hashCode());
+    Set<Type> types = new HashSet<Type>();
+    types.add(first);
+    types.add(second);
+    assertEquals(types.size(), 1);
+  }
+
+  public void shouldCompareReifiedAndDeclaredTypesSymmetrically() throws Exception {
+    Type declared = EqualityTypes.class.getDeclaredField("nested").getGenericType();
+    Type reified = TypeResolver.reify(declared);
+
+    assertEquals(reified, declared);
+    assertEquals(declared, reified);
+    assertEquals(reified.hashCode(), declared.hashCode());
+    Map<Type, String> values = new HashMap<Type, String>();
+    values.put(declared, "value");
+    assertEquals(values.get(reified), "value");
+  }
+
+  public void shouldCompareResolvedArgumentsInsteadOfOriginalVariables() throws Exception {
+    Type generic = EqualityTypes.class.getDeclaredField("generic").getGenericType();
+    Type strings = EqualityTypes.class.getDeclaredField("strings").getGenericType();
+    Type integers = EqualityTypes.class.getDeclaredField("integers").getGenericType();
+    Type reified = TypeResolver.reify(generic, StringEqualityTypes.class);
+
+    assertEquals(reified, TypeResolver.reify(strings));
+    assertEquals(reified, strings);
+    assertEquals(reified.hashCode(), strings.hashCode());
+    assert !reified.equals(TypeResolver.reify(integers));
+  }
+
   @Factory(dataProvider = "cacheDataProvider")
   public TypeResolverTest(boolean cacheEnabled) {
     super(cacheEnabled);
