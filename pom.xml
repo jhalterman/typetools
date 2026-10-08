@@ -377,7 +377,6 @@
                              -->
                             <argLine>
                                 @{argLine}
-                                --sun-misc-unsafe-memory-access=deny
                                 --add-opens java.base/java.lang.reflect=ALL-UNNAMED
                                 --add-opens java.base/jdk.internal.access=ALL-UNNAMED
                                 --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
