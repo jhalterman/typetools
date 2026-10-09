@@ -6,13 +6,11 @@ import java.lang.reflect.Type;
 class ReifiedParameterizedType implements ParameterizedType {
     private final ParameterizedType original;
     private final Type[] reifiedTypeArguments;
-    private final boolean[] loop;
     private int reified = 0;
 
     ReifiedParameterizedType(ParameterizedType original) {
       this.original = original;
       this.reifiedTypeArguments = new Type[original.getActualTypeArguments().length];
-      this.loop = new boolean[original.getActualTypeArguments().length];
     }
 
     /**
@@ -26,9 +24,6 @@ class ReifiedParameterizedType implements ParameterizedType {
   /* package-private */ void addReifiedTypeArgument(Type type) {
       if (reified >= reifiedTypeArguments.length) {
         return;
-      }
-      if (type == this) {
-        loop[reified] = true;
       }
       reifiedTypeArguments[reified++] = type;
     }
@@ -82,7 +77,7 @@ class ReifiedParameterizedType implements ParameterizedType {
         sb.append(rawType.getTypeName());
       }
 
-      if (actualTypeArguments != null && actualTypeArguments.length > 0) {
+      if (actualTypeArguments.length > 0) {
         sb.append("<");
 
         for (int i = 0; i < actualTypeArguments.length; i++) {
@@ -96,7 +91,7 @@ class ReifiedParameterizedType implements ParameterizedType {
             sb.append("?");
           } else if (t == null) {
             sb.append("null");
-          } else if (loop[i]) {
+          } else if (t == this) {
             // Instead of recursing into this argument, which would overflow the stack,
             // print three dots to indicate "self-loop structure is here". Note
             // that if the full string examined is some other type that contains this
@@ -123,29 +118,33 @@ class ReifiedParameterizedType implements ParameterizedType {
       }
 
       ParameterizedType that = (ParameterizedType) o;
-      if (!getRawType().equals(that.getRawType())) {
-        return false;
-      }
-      Type ownerType = getOwnerType();
-      if (ownerType == null ? that.getOwnerType() != null : !ownerType.equals(that.getOwnerType())) {
+      return equals(getRawType(), that.getRawType())
+                && equals(getOwnerType(), that.getOwnerType())
+                && selfReferentialArrayEquals(this, reifiedTypeArguments, that, that.getActualTypeArguments());
+    }
+
+    private static boolean equals(Object a, Object b) {
+      // Replace with Objects.equals
+      return (a == b) || (a != null && a.equals(b));
+    }
+
+    private static boolean selfReferentialArrayEquals(Type a, Type[] aValues, Type b, Type[] bValues) {
+      if (aValues.length != bValues.length) {
         return false;
       }
 
-      Type[] thatArguments = that.getActualTypeArguments();
-      if (reifiedTypeArguments.length != thatArguments.length) {
-        return false;
-      }
-
-      for (int i = 0; i < reifiedTypeArguments.length; i++) {
-        boolean thatLoop = that instanceof ReifiedParameterizedType && ((ReifiedParameterizedType) that).loop[i];
-        if (loop[i] != thatLoop) {
+      for (int i = 0; i < aValues.length; i++) {
+        Type aValue = aValues[i];
+        Type bValue = bValues[i];
+        // both must loop, or not loop
+        if ((aValue == a) != (bValue == b)) {
           return false;
         }
-        if (loop[i]) {
+        // skip loops
+        if (aValue == a) {
           continue;
         }
-        Type argument = reifiedTypeArguments[i];
-        if (argument == null ? thatArguments[i] != null : !argument.equals(thatArguments[i])) {
+        if (!equals(aValue, bValue)) {
           return false;
         }
       }
@@ -154,12 +153,20 @@ class ReifiedParameterizedType implements ParameterizedType {
 
     @Override
     public int hashCode() {
-      int argumentsHash = 1;
-      for (int i = 0; i < reifiedTypeArguments.length; i++) {
-        argumentsHash = 31 * argumentsHash
-            + (loop[i] || reifiedTypeArguments[i] == null ? 0 : reifiedTypeArguments[i].hashCode());
-      }
-      Type ownerType = getOwnerType();
-      return argumentsHash ^ getRawType().hashCode() ^ (ownerType == null ? 0 : ownerType.hashCode());
+      return selfReferentialArrayHashCode(this, reifiedTypeArguments) ^ hashCode(getRawType()) ^ hashCode(getOwnerType());
     }
-  }
+
+    static int hashCode(Object o) {
+      // Replace with Objects.hashCode
+      return o != null ? o.hashCode() : 0;
+    }
+
+    private static int selfReferentialArrayHashCode(Type a, Type[] aValues) {
+      int result = 1;
+      for (Type aValue : aValues) {
+        // skip loops
+        result = 31 * result + (aValue == a ? 0 : hashCode(aValue));
+      }
+      return result;
+    }
+}
