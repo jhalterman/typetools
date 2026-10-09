@@ -2,6 +2,9 @@ package net.jodah.typetools;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNotSame;
+import static org.testng.Assert.assertSame;
 
 import java.io.Closeable;
 import java.io.Serializable;
@@ -75,6 +78,43 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertEquals(reified, strings);
     assertEquals(reified.hashCode(), strings.hashCode());
     assert !reified.equals(TypeResolver.reify(integers));
+  }
+
+  static class RecursiveEqualityTypes<T extends Comparable<T>> {
+    T recursive;
+    Comparable<String> nonRecursive;
+  }
+
+  public void shouldCompareIndependentRecursiveTypes() throws Exception {
+    Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
+    ParameterizedType first = (ParameterizedType) TypeResolver.reify(declared);
+    ParameterizedType second = (ParameterizedType) TypeResolver.reify(declared);
+
+    assertNotSame(first, second);
+    assertSame(first.getActualTypeArguments()[0], first);
+    assertSame(second.getActualTypeArguments()[0], second);
+    assertEquals(first, second);
+    assertEquals(second, first);
+    assertEquals(first.hashCode(), second.hashCode());
+    Set<Type> types = new HashSet<Type>();
+    types.add(first);
+    types.add(second);
+    assertEquals(types.size(), 1);
+  }
+
+  public void shouldDistinguishRecursiveAndNonRecursiveArguments() throws Exception {
+    Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
+    ParameterizedType recursive = (ParameterizedType) TypeResolver.reify(declared);
+    ParameterizedType nonRecursive = (ParameterizedType)
+        RecursiveEqualityTypes.class.getDeclaredField("nonRecursive").getGenericType();
+    Type reifiedNonRecursive = TypeResolver.reify(nonRecursive);
+
+    assertEquals(recursive.getRawType(), nonRecursive.getRawType());
+    assertEquals(recursive.getOwnerType(), nonRecursive.getOwnerType());
+    assertFalse(recursive.equals(nonRecursive));
+    assertFalse(nonRecursive.equals(recursive));
+    assertFalse(recursive.equals(reifiedNonRecursive));
+    assertFalse(reifiedNonRecursive.equals(recursive));
   }
 
   @Factory(dataProvider = "cacheDataProvider")
