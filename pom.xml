@@ -240,8 +240,7 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <source>1.6</source>
-                            <target>1.6</target>
+                            <release>8</release>
                             <jdkToolchain>
                                 <version>8</version>
                             </jdkToolchain>
