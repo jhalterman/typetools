@@ -28,11 +28,14 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Predicate;
 
 /**
  * Enhanced type resolution utilities.
@@ -54,6 +57,7 @@ public final class TypeResolver {
   private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
   private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
   private static final Double JAVA_VERSION;
+  private static final List<Predicate<Member>> LAMBDA_MEMBER_FILTERS = Collections.synchronizedList(new ArrayList<>());
 
   static {
     JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
@@ -682,6 +686,9 @@ public final class TypeResolver {
               && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
           || member.getDeclaringClass().isAssignableFrom(type))
         continue;
+      if (testAllLambdaMemberFilters(member)) {
+        continue;
+      }
 
       result = member;
 
@@ -691,6 +698,29 @@ public final class TypeResolver {
     }
 
     return result;
+  }
+
+  /**
+   * Using some low-level instruction technology may add some members into the constant pool. The generated members
+   * could make {@link TypeResolver} to return a wrong type. To avoid this, use {@code addLambdaMemberFilter} to
+   * add a custom lambda member filter to skip wrong members.
+   *
+   * @param lambdaMemberFilter to add
+   */
+  public static synchronized void addLambdaMemberFilter(Predicate<Member> lambdaMemberFilter) {
+    LAMBDA_MEMBER_FILTERS.add(lambdaMemberFilter);
+  }
+
+  /**
+   * test member by custom lambda member filters, using OR operator.
+   */
+  private static boolean testAllLambdaMemberFilters(Member member) {
+    for (Predicate<Member> lambdaMemberFilter : LAMBDA_MEMBER_FILTERS) {
+      if (lambdaMemberFilter.test(member)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static boolean isAutoBoxingMethod(Method method) {
