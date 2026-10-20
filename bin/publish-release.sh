@@ -38,4 +38,4 @@ git status
 
 echo "TODO:"
 echo " * Approve the release on https://central.sonatype.com/"
-echo " * Publish the release on https://github.com/cucumber/polyglot-release/releases/tag/v$VERSION"
+echo " * Publish the release on https://github.com/jhalterman/typetools/releases/tag/v$VERSION"
