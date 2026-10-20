@@ -6,8 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.7.0] - 2026-10-20
 ### Added
-- Use a multi-release jar and provide `module-info.java` on JDK 9+. 
+- Use a multi-release jar and provide `module-info.java` on JDK 9+.
 
 ### Fixed
 - Use `MethodHandle` before using `sun.misc.Unsafe` on Java 9+. See notes [On Lambda Support](./README.md#on-lambda-support) for details on how to suppress warnings about the use of `Unsafe` on JDK 22+.
@@ -88,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial implementation
 
 [Unreleased]: https://github.com/jhalterman/typetools/compare/typetools-0.6.3...HEAD
+[0.7.0]: https://github.com/jhalterman/typetools/compare/typetools-0.6.3...v0.7.0
 [0.6.3]: https://github.com/jhalterman/typetools/compare/typetools-0.6.2...typetools-0.6.3
 [0.6.2]: https://github.com/jhalterman/typetools/compare/typetools-0.6.1...typetools-0.6.2
 [0.6.1]: https://github.com/jhalterman/typetools/compare/typetools-0.6.0...typetools-0.6.1
