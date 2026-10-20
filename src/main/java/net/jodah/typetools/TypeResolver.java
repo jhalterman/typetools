@@ -245,7 +245,7 @@ public final class TypeResolver {
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (subType.isSynthetic() && resolvesLambdas()) {
+    if (subType.isSynthetic()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
@@ -271,22 +271,6 @@ public final class TypeResolver {
     }
 
     return result;
-  }
-
-  private static boolean resolvesLambdas() {
-    if (RESOLVES_LAMBDAS == null) {
-      synchronized (TypeResolver.class) {
-        if (RESOLVES_LAMBDAS == null) {
-          try {
-            LAMBDA_ARGUMENT_RESOLVER = new LambdaArgumentResolver();
-            RESOLVES_LAMBDAS = true;
-          } catch (Throwable ignored) {
-            RESOLVES_LAMBDAS = false;
-          }
-        }
-      }
-    }
-    return RESOLVES_LAMBDAS;
   }
 
   /**
@@ -483,6 +467,22 @@ public final class TypeResolver {
     }
 
     return map;
+  }
+
+  private static boolean resolvesLambdas() {
+    if (RESOLVES_LAMBDAS == null) {
+      synchronized (TypeResolver.class) {
+        if (RESOLVES_LAMBDAS == null) {
+          try {
+            LAMBDA_ARGUMENT_RESOLVER = new LambdaArgumentResolver();
+            RESOLVES_LAMBDAS = true;
+          } catch (Throwable ignored) {
+            RESOLVES_LAMBDAS = false;
+          }
+        }
+      }
+    }
+    return RESOLVES_LAMBDAS;
   }
 
   /**
