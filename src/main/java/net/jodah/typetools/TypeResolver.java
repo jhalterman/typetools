@@ -46,7 +46,7 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static volatile Boolean RESOLVES_LAMBDAS;
+  private static final Object LAMBDA_ARGUMENT_RESOLVER_MONITOR = new Object();
   private static volatile LambdaArgumentResolver LAMBDA_ARGUMENT_RESOLVER;
 
   /** An unknown type. */
@@ -433,8 +433,8 @@ public final class TypeResolver {
       map = new HashMap<TypeVariable<?>, Type>();
 
       // Populate lambdas
-      if (functionalInterface != null && resolvesLambdas()) {
-        LAMBDA_ARGUMENT_RESOLVER.populateLambdaArgs(functionalInterface, targetType, map);
+      if (functionalInterface != null) {
+        getLambdaArgumentResolver().populateLambdaArgs(functionalInterface, targetType, map);
       }
 
       // Populate interfaces
@@ -469,20 +469,19 @@ public final class TypeResolver {
     return map;
   }
 
-  private static boolean resolvesLambdas() {
-    if (RESOLVES_LAMBDAS == null) {
-      synchronized (TypeResolver.class) {
-        if (RESOLVES_LAMBDAS == null) {
+  private static LambdaArgumentResolver getLambdaArgumentResolver() {
+    if (LAMBDA_ARGUMENT_RESOLVER == null) {
+      synchronized (LAMBDA_ARGUMENT_RESOLVER_MONITOR) {
+        if (LAMBDA_ARGUMENT_RESOLVER == null) {
           try {
-            LAMBDA_ARGUMENT_RESOLVER = new LambdaArgumentResolver();
-            RESOLVES_LAMBDAS = true;
+            LAMBDA_ARGUMENT_RESOLVER = new DefaultLambdaArgumentResolver();
           } catch (Throwable ignored) {
-            RESOLVES_LAMBDAS = false;
+            LAMBDA_ARGUMENT_RESOLVER = new NoopLambdaArgumentResolver();
           }
         }
       }
     }
-    return RESOLVES_LAMBDAS;
+    return LAMBDA_ARGUMENT_RESOLVER;
   }
 
   /**
@@ -567,7 +566,21 @@ public final class TypeResolver {
     return bound == Object.class ? Unknown.class : bound;
   }
 
-  private static final class LambdaArgumentResolver {
+  private interface LambdaArgumentResolver {
+
+    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
+                Map<TypeVariable<?>, Type> map);
+  }
+
+  private static final class NoopLambdaArgumentResolver implements LambdaArgumentResolver {
+
+    @Override
+    public void populateLambdaArgs(Class<?> functionalInterface, Class<?> lambdaType, Map<TypeVariable<?>, Type> map) {
+      /* no-op */
+    }
+  }
+
+  private static final class DefaultLambdaArgumentResolver implements LambdaArgumentResolver {
 
     private static final Double JAVA_VERSION;
 
@@ -582,7 +595,7 @@ public final class TypeResolver {
     private final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
     private final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
 
-    LambdaArgumentResolver() throws Throwable {
+    DefaultLambdaArgumentResolver() throws Throwable {
       TypeResolverUtil typeResolverUtil = createTypeResolverUtil();
       AccessMaker accessSetter = typeResolverUtil.createAccessMaker();
 
@@ -623,78 +636,77 @@ public final class TypeResolver {
     }
 
     private static TypeResolverUtil createTypeResolverUtil() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-        String className;
-        // Poor-mans multi-release jar.
-        if (JAVA_VERSION >= 22) {
-            className = "net.jodah.typetools.TypeResolverUtil22";
-        } else if(JAVA_VERSION >= 12) {
-            className = "net.jodah.typetools.TypeResolverUtil12";
-        } else if(JAVA_VERSION >= 9) {
-            className = "net.jodah.typetools.TypeResolverUtil9";
-        } else {
-            className = "net.jodah.typetools.TypeResolverUtil8";
-        }
-        // Use reflection to avoid creating a circular dependency
-        return (TypeResolverUtil) Class.forName(className).newInstance();
+      String className;
+      // Poor-mans multi-release jar.
+      if (JAVA_VERSION >= 22) {
+        className = "net.jodah.typetools.TypeResolverUtil22";
+      } else if (JAVA_VERSION >= 12) {
+        className = "net.jodah.typetools.TypeResolverUtil12";
+      } else if (JAVA_VERSION >= 9) {
+        className = "net.jodah.typetools.TypeResolverUtil9";
+      } else {
+        className = "net.jodah.typetools.TypeResolverUtil8";
+      }
+      // Use reflection to avoid creating a circular dependency
+      return (TypeResolverUtil) Class.forName(className).newInstance();
     }
 
     /**
      * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
      */
-    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-                Map<TypeVariable<?>, Type> map) {
-      if (RESOLVES_LAMBDAS) {
-        // Find SAM
-        for (Method m : functionalInterface.getMethods()) {
-          if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
-            // Skip methods that override Object.class
-            Method objectMethod = OBJECT_METHODS.get(m.getName());
-            if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
-              continue;
+    @Override
+    public void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
+                     Map<TypeVariable<?>, Type> map) {
+      // Find SAM
+      for (Method m : functionalInterface.getMethods()) {
+        if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
+          // Skip methods that override Object.class
+          Method objectMethod = OBJECT_METHODS.get(m.getName());
+          if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
+            continue;
 
-            // Get functional interface's type params
-            Type returnTypeVar = m.getGenericReturnType();
-            Type[] paramTypeVars = m.getGenericParameterTypes();
+          // Get functional interface's type params
+          Type returnTypeVar = m.getGenericReturnType();
+          Type[] paramTypeVars = m.getGenericParameterTypes();
 
-            Member member = getMemberRef(lambdaType);
-            if (member == null)
-              return;
-
-            // Populate return type argument
-            if (returnTypeVar instanceof TypeVariable) {
-              Class<?> returnType = member instanceof Method ? ((Method) member).getReturnType()
-                  : ((Constructor<?>) member).getDeclaringClass();
-              returnType = wrapPrimitives(returnType);
-              if (!returnType.equals(Void.class))
-                map.put((TypeVariable<?>) returnTypeVar, returnType);
-            }
-
-            Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
-                : ((Constructor<?>) member).getParameterTypes();
-
-            // Populate object type from arbitrary object method reference
-            int paramOffset = 0;
-            if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
-                && paramTypeVars.length == arguments.length + 1) {
-              Class<?> instanceType = member.getDeclaringClass();
-              map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
-              paramOffset = 1;
-            }
-
-            // Handle additional arguments that are captured from the lambda's enclosing scope
-            int argOffset = 0;
-            if (paramTypeVars.length < arguments.length) {
-              argOffset = arguments.length - paramTypeVars.length;
-            }
-
-            // Populate type arguments
-            for (int i = 0; i + argOffset < arguments.length; i++) {
-              if (paramTypeVars[i] instanceof TypeVariable)
-                map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], wrapPrimitives(arguments[i + argOffset]));
-            }
-
+          Member member = getMemberRef(lambdaType);
+          if (member == null)
             return;
+
+          // Populate return type argument
+          if (returnTypeVar instanceof TypeVariable) {
+            Class<?> returnType = member instanceof Method ? ((Method) member).getReturnType()
+                : ((Constructor<?>) member).getDeclaringClass();
+            returnType = wrapPrimitives(returnType);
+            if (!returnType.equals(Void.class))
+              map.put((TypeVariable<?>) returnTypeVar, returnType);
           }
+
+          Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
+              : ((Constructor<?>) member).getParameterTypes();
+
+          // Populate object type from arbitrary object method reference
+          int paramOffset = 0;
+          if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
+              && paramTypeVars.length == arguments.length + 1) {
+            Class<?> instanceType = member.getDeclaringClass();
+            map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
+            paramOffset = 1;
+          }
+
+          // Handle additional arguments that are captured from the lambda's enclosing scope
+          int argOffset = 0;
+          if (paramTypeVars.length < arguments.length) {
+            argOffset = arguments.length - paramTypeVars.length;
+          }
+
+          // Populate type arguments
+          for (int i = 0; i + argOffset < arguments.length; i++) {
+            if (paramTypeVars[i] instanceof TypeVariable)
+              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], wrapPrimitives(arguments[i + argOffset]));
+          }
+
+          return;
         }
       }
     }
