@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html","k":"18"},{"p":"net.jodah.typetools","l":"TypeResolver"},{"p":"net.jodah.typetools","l":"TypeResolver.Unknown"}];updateSearchResults();
