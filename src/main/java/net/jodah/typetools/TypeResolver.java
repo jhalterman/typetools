@@ -46,59 +46,8 @@ public final class TypeResolver {
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static boolean RESOLVES_LAMBDAS;
-  private static Object JAVA_LANG_ACCESS;
-  private static Method GET_CONSTANT_POOL;
-  private static Method GET_CONSTANT_POOL_SIZE;
-  private static Method GET_CONSTANT_POOL_METHOD_AT;
-  private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
-  private static final Double JAVA_VERSION;
-
-  static {
-    JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-    try {
-      AccessMaker accessSetter = TypeResolverUtil.createAccessMaker();
-
-      Class<?> sharedSecretsClass = TypeResolverUtil.getSharedSecretsClass();
-      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      accessSetter.makeAccessible(javaLangAccessGetter);
-      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
-      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
-
-      Class<?> constantPoolClass = TypeResolverUtil.getConstantPoolClass();
-      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
-      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      accessSetter.makeAccessible(GET_CONSTANT_POOL);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
-      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-
-      for (Method method : Object.class.getDeclaredMethods())
-        OBJECT_METHODS.put(method.getName(), method);
-
-      RESOLVES_LAMBDAS = true;
-    } catch (Throwable ignore) {
-    }
-
-    Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
-    types.put(boolean.class, Boolean.class);
-    types.put(byte.class, Byte.class);
-    types.put(char.class, Character.class);
-    types.put(double.class, Double.class);
-    types.put(float.class, Float.class);
-    types.put(int.class, Integer.class);
-    types.put(long.class, Long.class);
-    types.put(short.class, Short.class);
-    types.put(void.class, Void.class);
-    PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
-  }
+  private static volatile Boolean RESOLVES_LAMBDAS;
+  private static volatile LambdaArgumentResolver LAMBDA_ARGUMENT_RESOLVER;
 
   /** An unknown type. */
   public static final class Unknown {
@@ -107,6 +56,7 @@ public final class TypeResolver {
   }
 
   private TypeResolver() {
+    /* no-op */
   }
 
   /**
@@ -295,7 +245,7 @@ public final class TypeResolver {
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (RESOLVES_LAMBDAS && subType.isSynthetic()) {
+    if (subType.isSynthetic() && resolvesLambdas()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
@@ -321,6 +271,22 @@ public final class TypeResolver {
     }
 
     return result;
+  }
+
+  private static boolean resolvesLambdas() {
+    if (RESOLVES_LAMBDAS == null) {
+      synchronized (TypeResolver.class) {
+        if (RESOLVES_LAMBDAS == null) {
+          try {
+            LAMBDA_ARGUMENT_RESOLVER = new LambdaArgumentResolver();
+            RESOLVES_LAMBDAS = true;
+          } catch (Throwable ignored) {
+            RESOLVES_LAMBDAS = false;
+          }
+        }
+      }
+    }
+    return RESOLVES_LAMBDAS;
   }
 
   /**
@@ -362,7 +328,7 @@ public final class TypeResolver {
    * else {@link Unknown} if the raw class cannot be resolved.
    *
    * @param genericType to resolve raw class for
-   * @param subType to extract type variable information from
+   * @param subType   to extract type variable information from
    * @return raw class for the {@code genericType} else {@link Unknown} if it cannot be resolved
    */
   public static Class<?> resolveRawClass(Type genericType, Class<?> subType) {
@@ -483,8 +449,9 @@ public final class TypeResolver {
       map = new HashMap<TypeVariable<?>, Type>();
 
       // Populate lambdas
-      if (functionalInterface != null)
-        populateLambdaArgs(functionalInterface, targetType, map);
+      if (functionalInterface != null && resolvesLambdas()) {
+        LAMBDA_ARGUMENT_RESOLVER.populateLambdaArgs(functionalInterface, targetType, map);
+      }
 
       // Populate interfaces
       populateSuperTypeArgs(targetType.getGenericInterfaces(), map, functionalInterface != null);
@@ -600,122 +567,177 @@ public final class TypeResolver {
     return bound == Object.class ? Unknown.class : bound;
   }
 
-  /**
-   * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
-   */
-  private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-      Map<TypeVariable<?>, Type> map) {
-    if (RESOLVES_LAMBDAS) {
-      // Find SAM
-      for (Method m : functionalInterface.getMethods()) {
-        if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
-          // Skip methods that override Object.class
-          Method objectMethod = OBJECT_METHODS.get(m.getName());
-          if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
-            continue;
+  private static final class LambdaArgumentResolver {
 
-          // Get functional interface's type params
-          Type returnTypeVar = m.getGenericReturnType();
-          Type[] paramTypeVars = m.getGenericParameterTypes();
+    private static final Double JAVA_VERSION;
 
-          Member member = getMemberRef(lambdaType);
-          if (member == null)
+    static {
+      JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    }
+
+    private final Object JAVA_LANG_ACCESS;
+    private final Method GET_CONSTANT_POOL;
+    private final Method GET_CONSTANT_POOL_SIZE;
+    private final Method GET_CONSTANT_POOL_METHOD_AT;
+    private final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
+    private final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
+
+    LambdaArgumentResolver() throws Throwable {
+      AccessMaker accessSetter = TypeResolverUtil.createAccessMaker();
+
+      Class<?> sharedSecretsClass = TypeResolverUtil.getSharedSecretsClass();
+      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
+      accessSetter.makeAccessible(javaLangAccessGetter);
+      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
+      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
+
+      Class<?> constantPoolClass = TypeResolverUtil.getConstantPoolClass();
+      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
+      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
+
+      // setting the methods as accessible
+      accessSetter.makeAccessible(GET_CONSTANT_POOL);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
+
+      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
+      // ConstantPool::getSize on a class
+      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
+      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+
+      for (Method method : Object.class.getDeclaredMethods())
+        OBJECT_METHODS.put(method.getName(), method);
+
+      Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
+      types.put(boolean.class, Boolean.class);
+      types.put(byte.class, Byte.class);
+      types.put(char.class, Character.class);
+      types.put(double.class, Double.class);
+      types.put(float.class, Float.class);
+      types.put(int.class, Integer.class);
+      types.put(long.class, Long.class);
+      types.put(short.class, Short.class);
+      types.put(void.class, Void.class);
+      PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
+    }
+
+    /**
+     * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
+     */
+    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
+                Map<TypeVariable<?>, Type> map) {
+      if (RESOLVES_LAMBDAS) {
+        // Find SAM
+        for (Method m : functionalInterface.getMethods()) {
+          if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
+            // Skip methods that override Object.class
+            Method objectMethod = OBJECT_METHODS.get(m.getName());
+            if (objectMethod != null && Arrays.equals(m.getTypeParameters(), objectMethod.getTypeParameters()))
+              continue;
+
+            // Get functional interface's type params
+            Type returnTypeVar = m.getGenericReturnType();
+            Type[] paramTypeVars = m.getGenericParameterTypes();
+
+            Member member = getMemberRef(lambdaType);
+            if (member == null)
+              return;
+
+            // Populate return type argument
+            if (returnTypeVar instanceof TypeVariable) {
+              Class<?> returnType = member instanceof Method ? ((Method) member).getReturnType()
+                  : ((Constructor<?>) member).getDeclaringClass();
+              returnType = wrapPrimitives(returnType);
+              if (!returnType.equals(Void.class))
+                map.put((TypeVariable<?>) returnTypeVar, returnType);
+            }
+
+            Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
+                : ((Constructor<?>) member).getParameterTypes();
+
+            // Populate object type from arbitrary object method reference
+            int paramOffset = 0;
+            if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
+                && paramTypeVars.length == arguments.length + 1) {
+              Class<?> instanceType = member.getDeclaringClass();
+              map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
+              paramOffset = 1;
+            }
+
+            // Handle additional arguments that are captured from the lambda's enclosing scope
+            int argOffset = 0;
+            if (paramTypeVars.length < arguments.length) {
+              argOffset = arguments.length - paramTypeVars.length;
+            }
+
+            // Populate type arguments
+            for (int i = 0; i + argOffset < arguments.length; i++) {
+              if (paramTypeVars[i] instanceof TypeVariable)
+                map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], wrapPrimitives(arguments[i + argOffset]));
+            }
+
             return;
-
-          // Populate return type argument
-          if (returnTypeVar instanceof TypeVariable) {
-            Class<?> returnType = member instanceof Method ? ((Method) member).getReturnType()
-                : ((Constructor<?>) member).getDeclaringClass();
-            returnType = wrapPrimitives(returnType);
-            if (!returnType.equals(Void.class))
-              map.put((TypeVariable<?>) returnTypeVar, returnType);
           }
-
-          Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
-              : ((Constructor<?>) member).getParameterTypes();
-
-          // Populate object type from arbitrary object method reference
-          int paramOffset = 0;
-          if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
-              && paramTypeVars.length == arguments.length + 1) {
-            Class<?> instanceType = member.getDeclaringClass();
-            map.put((TypeVariable<?>) paramTypeVars[0], instanceType);
-            paramOffset = 1;
-          }
-
-          // Handle additional arguments that are captured from the lambda's enclosing scope
-          int argOffset = 0;
-          if (paramTypeVars.length < arguments.length) {
-            argOffset = arguments.length - paramTypeVars.length;
-          }
-
-          // Populate type arguments
-          for (int i = 0; i + argOffset < arguments.length; i++) {
-            if (paramTypeVars[i] instanceof TypeVariable)
-              map.put((TypeVariable<?>) paramTypeVars[i + paramOffset], wrapPrimitives(arguments[i + argOffset]));
-          }
-
-          return;
         }
       }
     }
-  }
 
-  private static boolean isDefaultMethod(Method m) {
-    return JAVA_VERSION >= 1.8 && m.isDefault();
-  }
-
-  private static Member getMemberRef(Class<?> type) {
-    Object constantPool;
-    try {
-      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
-    } catch (Exception ignore) {
-      return null;
+    private static boolean isDefaultMethod(Method m) {
+      return JAVA_VERSION >= 1.8 && m.isDefault();
     }
 
-    Member result = null;
-    for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
-      Member member = getConstantPoolMethodAt(constantPool, i);
-      // Skip SerializedLambda constructors and members of the "type" class
-      if (member == null
-          || (member instanceof Constructor
-              && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-          || member.getDeclaringClass().isAssignableFrom(type))
-        continue;
+    private Member getMemberRef(Class<?> type) {
+      Object constantPool;
+      try {
+        constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
+      } catch (Exception ignore) {
+        return null;
+      }
 
-      result = member;
+      Member result = null;
+      for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
+        Member member = getConstantPoolMethodAt(constantPool, i);
+        // Skip SerializedLambda constructors and members of the "type" class
+        if (member == null
+            || (member instanceof Constructor
+            && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+            || member.getDeclaringClass().isAssignableFrom(type))
+          continue;
 
-      // Return if not valueOf method
-      if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
-        break;
+        result = member;
+
+        // Return if not valueOf method
+        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
+          break;
+      }
+
+      return result;
     }
 
-    return result;
-  }
-
-  private static boolean isAutoBoxingMethod(Method method) {
-    Class<?>[] parameters = method.getParameterTypes();
-    return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
-        && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
-  }
-
-  private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS.get(clazz) : clazz;
-  }
-
-  private static int getConstantPoolSize(Object constantPool) {
-    try {
-      return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-    } catch (Exception ignore) {
-      return 0;
+    private boolean isAutoBoxingMethod(Method method) {
+      Class<?>[] parameters = method.getParameterTypes();
+      return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
+          && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
     }
-  }
 
-  private static Member getConstantPoolMethodAt(Object constantPool, int i) {
-    try {
-      return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
-    } catch (Exception ignore) {
-      return null;
+    private Class<?> wrapPrimitives(Class<?> clazz) {
+      return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS.get(clazz) : clazz;
+    }
+
+    private int getConstantPoolSize(Object constantPool) {
+      try {
+        return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+      } catch (Exception ignore) {
+        return 0;
+      }
+    }
+
+    private Member getConstantPoolMethodAt(Object constantPool, int i) {
+      try {
+        return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
+      } catch (Exception ignore) {
+        return null;
+      }
     }
   }
 }
