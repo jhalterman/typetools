@@ -4,7 +4,7 @@
 
     <groupId>net.jodah</groupId>
     <artifactId>typetools</artifactId>
-    <version>0.7.0</version>
+    <version>0.7.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>TypeTools</name>
     <url>http://github.com/jhalterman/typetools/</url>
@@ -34,11 +34,11 @@
         <connection>scm:git:git@github.com:jhalterman/typetools.git</connection>
         <developerConnection>scm:git:git@github.com:jhalterman/typetools.git</developerConnection>
         <url>https://github.com/jhalterman/typetools/</url>
-        <tag>v0.7.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
-        <project.build.outputTimestamp>1792505089</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1792505100</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.build.propertiesEncoding>UTF-8</project.build.propertiesEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
