@@ -369,7 +369,7 @@ public final class TypeResolver {
         res.addReifiedTypeArgument(res);
         return res;
       }
-      final Type[] genericTypeArguments =  parameterizedType.getActualTypeArguments();
+      final Type[] genericTypeArguments = parameterizedType.getActualTypeArguments();
       final ReifiedParameterizedType result = new ReifiedParameterizedType(parameterizedType);
       partial.put(parameterizedType, result);
       for (Type genericTypeArgument : genericTypeArguments) {
@@ -488,7 +488,7 @@ public final class TypeResolver {
    * Populates the {@code map} with variable/argument pairs for the given {@code types}.
    */
   private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
-      boolean depthFirst) {
+                        boolean depthFirst) {
     for (Type type : types) {
       if (type instanceof ParameterizedType) {
         ParameterizedType parameterizedType = (ParameterizedType) type;
