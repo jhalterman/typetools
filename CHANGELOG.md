@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use `MethodHandle` before using `sun.misc.Unsafe` on Java 9+. See notes
   [On Lambda Support](./README.md#on-lambda-support) for details on how to
   suppress warnings about the use of `Unsafe` on JDK 22+.
+- Initialize lambda support lazily, so `sun.misc.Unsafe` is only touched (and its
+  deprecation warning only printed) when a lambda is actually resolved.
 
 ## [0.6.3]
 ### Fixed
