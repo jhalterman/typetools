@@ -7,20 +7,15 @@ import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedExceptionAction;
 
-/**
- * Unique name so Jacoco can see the coverage
- */
-final class TypeResolverUtil9 {
+final class TypeResolverUtil9 implements TypeResolverUtil{
 
-  private TypeResolverUtil9() {
-    /* no-op */
-  }
-
-  static Class<?> getConstantPoolClass() throws Throwable {
+  @Override
+  public Class<?> getConstantPoolClass() throws Throwable {
     return Class.forName("jdk.internal.reflect.ConstantPool");
   }
 
-  static Class<?> getSharedSecretsClass() throws Throwable {
+  @Override
+  public Class<?> getSharedSecretsClass() throws Throwable {
     try {
       return Class.forName("jdk.internal.misc.SharedSecrets");
     } catch (ClassNotFoundException e) {
@@ -29,7 +24,8 @@ final class TypeResolverUtil9 {
     }
   }
 
-  static AccessMaker createAccessMaker() throws Throwable {
+  @Override
+  public AccessMaker createAccessMaker() throws Throwable {
     return createAccessMakerUsingUnsafe();
   }
 

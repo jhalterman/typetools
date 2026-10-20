@@ -7,24 +7,20 @@ import java.lang.invoke.MethodHandles;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Field;
 
-/**
- * Unique name so Jacoco can see the coverage
- */
-final class TypeResolverUtil22 {
+final class TypeResolverUtil22 implements TypeResolverUtil {
 
-  private TypeResolverUtil22() {
-    /* no-op */
-  }
-
-  static Class<?> getConstantPoolClass() throws Throwable {
+  @Override
+  public Class<?> getConstantPoolClass() throws Throwable {
     return Class.forName("jdk.internal.reflect.ConstantPool");
   }
 
-  static Class<?> getSharedSecretsClass() throws Throwable {
+  @Override
+  public Class<?> getSharedSecretsClass() throws Throwable {
     return Class.forName("jdk.internal.access.SharedSecrets");
   }
 
-  static AccessMaker createAccessMaker() throws Throwable {
+  @Override
+  public AccessMaker createAccessMaker() throws Throwable {
     try {
       // If --add-opens flags are present we can use MethodHandles.privateLookupIn()
       return createAccessMakerUsingMethodHandle();
