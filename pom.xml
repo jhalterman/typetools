@@ -272,7 +272,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>jdk9-compile</id>
+                        <id>module-info-compile</id>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -282,6 +282,22 @@
                                 <version>11</version>
                             </jdkToolchain>
                             <multiReleaseOutput>true</multiReleaseOutput>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/module-info</compileSourceRoot>
+                            </compileSourceRoots>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jdk9-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>9</release>
+                            <jdkToolchain>
+                                <version>11</version>
+                            </jdkToolchain>
+                            <multiReleaseOutput>false</multiReleaseOutput>
                             <compileSourceRoots>
                                 <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                             </compileSourceRoots>
@@ -297,7 +313,7 @@
                             <jdkToolchain>
                                 <version>17</version>
                             </jdkToolchain>
-                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <multiReleaseOutput>false</multiReleaseOutput>
                             <compileSourceRoots>
                                 <compileSourceRoot>${project.basedir}/src/main/java12</compileSourceRoot>
                             </compileSourceRoots>
@@ -313,7 +329,7 @@
                             <jdkToolchain>
                                 <version>25</version>
                             </jdkToolchain>
-                            <multiReleaseOutput>true</multiReleaseOutput>
+                            <multiReleaseOutput>false</multiReleaseOutput>
                             <compileSourceRoots>
                                 <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
                             </compileSourceRoots>
@@ -565,13 +581,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <!-- Jacoco expects all classes to be unique, but
-                             this class can't be unique because it is multi-released. -->
-                        <exclude>**/META-INF/versions/**/TypeResolverUtil.class</exclude>
-                    </excludes>
-                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>

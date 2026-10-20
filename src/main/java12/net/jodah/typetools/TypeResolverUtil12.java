@@ -10,24 +10,20 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-/**
- * Unique name so Jacoco can see the coverage
- */
-final class TypeResolverUtil12 {
+final class TypeResolverUtil12 implements TypeResolverUtil{
 
-  private TypeResolverUtil12() {
-    /* no-op */
-  }
-
-  static Class<?> getConstantPoolClass() throws Throwable {
+  @Override
+  public Class<?> getConstantPoolClass() throws Throwable {
     return Class.forName("jdk.internal.reflect.ConstantPool");
   }
 
-  static Class<?> getSharedSecretsClass() throws Throwable {
+  @Override
+  public Class<?> getSharedSecretsClass() throws Throwable {
     return Class.forName("jdk.internal.access.SharedSecrets");
   }
 
-  static AccessMaker createAccessMaker() throws Throwable {
+  @Override
+  public AccessMaker createAccessMaker() throws Throwable {
     try {
       // If --add-opens flags are present we can use MethodHandles.privateLookupIn()
       return createAccessMakerUsingMethodHandle();
