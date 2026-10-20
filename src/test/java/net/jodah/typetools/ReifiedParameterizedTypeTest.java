@@ -66,7 +66,6 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     assertFalse(reified.equals(TypeResolver.reify(integers)));
   }
 
-
   public void shouldCompareIndependentRecursiveTypes() throws Exception {
     Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
     ParameterizedType first = (ParameterizedType) TypeResolver.reify(declared);
@@ -83,8 +82,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
   public void shouldDistinguishRecursiveAndNonRecursiveArguments() throws Exception {
     Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
     ParameterizedType recursive = (ParameterizedType) TypeResolver.reify(declared);
-    ParameterizedType nonRecursive = (ParameterizedType)
-        RecursiveEqualityTypes.class.getDeclaredField("nonRecursive").getGenericType();
+    ParameterizedType nonRecursive = (ParameterizedType) RecursiveEqualityTypes.class.getDeclaredField("nonRecursive")
+        .getGenericType();
     Type reifiedNonRecursive = TypeResolver.reify(nonRecursive);
 
     assertEquals(recursive.getRawType(), nonRecursive.getRawType());

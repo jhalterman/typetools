@@ -1,9 +1,9 @@
 package net.jodah.typetools;
 
+import org.testng.annotations.Test;
+
 import java.io.Serializable;
 import java.lang.reflect.Type;
-
-import org.testng.annotations.Test;
 
 /**
  * TypeTools examples.
@@ -56,8 +56,7 @@ public class Examples {
   }
 
   public void shouldResolveTypeFromMethodDeclaration() throws Exception {
-    Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class)
-        .getGenericParameterTypes()[0];
+    Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
     assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class;
   }
 }

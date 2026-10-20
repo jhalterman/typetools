@@ -1,12 +1,11 @@
 package net.jodah.typetools.issues;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.TypeResolver;
+import org.testng.annotations.Test;
 
 import java.util.function.Consumer;
 
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.TypeResolver;
+import static org.testng.Assert.assertEquals;
 
 /**
  * https://github.com/jhalterman/typetools/issues/14
@@ -18,7 +17,8 @@ public class Issue14 {
   }
 
   /**
-   * Not currently supported. See https://github.com/jhalterman/typetools/issues/14#issuecomment-203253692
+   * Not currently supported. See
+   * https://github.com/jhalterman/typetools/issues/14#issuecomment-203253692
    */
   @Test(enabled = false)
   public void test() {

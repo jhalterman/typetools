@@ -1,12 +1,11 @@
 package net.jodah.typetools.issues;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.TypeResolver;
+import org.testng.annotations.Test;
 
 import java.util.function.Function;
 
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.TypeResolver;
+import static org.testng.Assert.assertEquals;
 
 /**
  * https://github.com/jhalterman/typetools/issues/27

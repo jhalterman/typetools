@@ -1,10 +1,8 @@
 package net.jodah.typetools;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertNull;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotSame;
-import static org.testng.Assert.assertSame;
+import net.jodah.typetools.TypeResolver.Unknown;
+import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 
 import java.io.Closeable;
 import java.io.Serializable;
@@ -22,10 +20,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.TypeResolver.Unknown;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 
 /**
  * @author Jonathan Halterman
@@ -269,15 +265,16 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   }
 
   public void shouldReifyTypeVariable() throws Throwable {
-    Type plainField  = TypeListFixture.class.getDeclaredField("testPlain").getGenericType();
+    Type plainField = TypeListFixture.class.getDeclaredField("testPlain").getGenericType();
 
     Type arg = TypeResolver.reify(plainField, TypeListImpl.class);
     assert arg == String.class;
   }
 
   public void shouldReifyWildcardFromGenericMethod() throws Exception {
-    Type type = TypeResolver.reify(
-        GenericMethodHolder.class.getMethod("genericMethod").getGenericReturnType());
+    Type type = TypeResolver.reify( //
+        GenericMethodHolder.class.getMethod("genericMethod").getGenericReturnType() //
+    );
     assert type == Number.class;
   }
 
@@ -290,14 +287,17 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   }
 
   private static abstract class WildcardWithBoundFixture {
+
     public abstract List<? extends Number> getNumberList();
+
     public abstract List<? extends Collection<List<? extends Number>>> collect();
+
   }
 
   public void shouldReifyWildcardToUpperBound() throws Exception {
-    Type type = TypeResolver.reify(
-        WildcardWithBoundFixture.class.getMethod("getNumberList").getGenericReturnType(),
-        WildcardWithBoundFixture.class
+    Type type = TypeResolver.reify( //
+        WildcardWithBoundFixture.class.getMethod("getNumberList").getGenericReturnType(), //
+        WildcardWithBoundFixture.class //
     );
 
     assert type instanceof ParameterizedType;
@@ -307,9 +307,9 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   }
 
   public void shouldReifyWildcardWithComplexUpperBound() throws Exception {
-    Type type = TypeResolver.reify(
-        WildcardWithBoundFixture.class.getMethod("collect").getGenericReturnType(),
-        WildcardWithBoundFixture.class
+    Type type = TypeResolver.reify( //
+        WildcardWithBoundFixture.class.getMethod("collect").getGenericReturnType(), //
+        WildcardWithBoundFixture.class //
     );
 
     assertEquals(type.toString(), "java.util.List<java.util.Collection<java.util.List<java.lang.Number>>>");
@@ -334,20 +334,26 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     public S enumField;
   }
 
-  static abstract class SubEnumBound<S extends Enum<S>> extends EnumBound<S>  {
+  static abstract class SubEnumBound<S extends Enum<S>> extends EnumBound<S> {
   }
 
-  static abstract class MutuallyRecursiveBase<T, U> {}
+  static abstract class MutuallyRecursiveBase<T, U> {
+  }
 
-  static abstract class MutuallyRecursive<T extends List<T>, U extends List<T>> extends MutuallyRecursiveBase<T, U> {}
+  static abstract class MutuallyRecursive<T extends List<T>, U extends List<T>> extends MutuallyRecursiveBase<T, U> {
+  }
 
-  static abstract class RecursiveOnSecondBase<S, T> {}
+  static abstract class RecursiveOnSecondBase<S, T> {
+  }
 
-  static abstract class RecursiveOnSecond<S, T extends RecursiveOnSecond<S, T>> extends RecursiveOnSecondBase<S, T> {}
+  static abstract class RecursiveOnSecond<S, T extends RecursiveOnSecond<S, T>> extends RecursiveOnSecondBase<S, T> {
+  }
 
-  static abstract class RecursiveLongBase<T> {}
+  static abstract class RecursiveLongBase<T> {
+  }
 
-  static abstract class RecursiveLong<T extends List<Set<T>>> extends RecursiveLongBase<T> {}
+  static abstract class RecursiveLong<T extends List<Set<T>>> extends RecursiveLongBase<T> {
+  }
 
   public void shouldReifyRecursiveBound() {
     Type result = TypeResolver.reify(EnumBound.class, SubEnumBound.class);
@@ -356,7 +362,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
 
     // Navigate into enum parameter.
     assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
-    ParameterizedType parameterizedType2 = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    ParameterizedType parameterizedType2 = (ParameterizedType) parameterizedType.getActualTypeArguments()[0];
     assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType2);
     // Assert existence of loop
     assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
@@ -372,7 +378,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
 
     // Navigate into enum parameter.
     assert parameterizedType.getActualTypeArguments()[0] instanceof ParameterizedType;
-    ParameterizedType parameterizedType2 = (ParameterizedType)parameterizedType.getActualTypeArguments()[0];
+    ParameterizedType parameterizedType2 = (ParameterizedType) parameterizedType.getActualTypeArguments()[0];
     assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType2);
 
     // Assert existence of loop
@@ -397,14 +403,15 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     Type result = TypeResolver.reify(MutuallyRecursiveBase.class, MutuallyRecursive.class);
     assert result instanceof ParameterizedType;
     ParameterizedType parent = (ParameterizedType) result;
-    assert result.toString().equals("net.jodah.typetools.TypeResolverTest$MutuallyRecursiveBase<java.util.List<...>, java.util.List<...>>");
+    assert result.toString()
+        .equals("net.jodah.typetools.TypeResolverTest$MutuallyRecursiveBase<java.util.List<...>, java.util.List<...>>");
     assert parent.getActualTypeArguments()[0] instanceof ParameterizedType;
-    ParameterizedType parameterizedType = (ParameterizedType)parent.getActualTypeArguments()[0];
+    ParameterizedType parameterizedType = (ParameterizedType) parent.getActualTypeArguments()[0];
     assert parameterizedType.getActualTypeArguments()[0] == parameterizedType;
     assert parameterizedType.getActualTypeArguments()[0].equals(parameterizedType);
 
     assert parent.getActualTypeArguments()[1] instanceof ParameterizedType;
-    ParameterizedType parameterizedType2 = (ParameterizedType)parent.getActualTypeArguments()[1];
+    ParameterizedType parameterizedType2 = (ParameterizedType) parent.getActualTypeArguments()[1];
     assert parameterizedType2.getActualTypeArguments()[0] == parameterizedType2;
 
     assert parameterizedType.equals(parameterizedType2);
@@ -418,7 +425,7 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assert parameterizedType.getActualTypeArguments()[0] == Object.class;
 
     assert parameterizedType.getActualTypeArguments()[1] instanceof ParameterizedType;
-    parameterizedType = (ParameterizedType)parameterizedType.getActualTypeArguments()[1];
+    parameterizedType = (ParameterizedType) parameterizedType.getActualTypeArguments()[1];
     // Assert existence of loop
     assert parameterizedType.getActualTypeArguments()[1] == parameterizedType;
   }

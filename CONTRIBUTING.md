@@ -102,3 +102,12 @@ To run the tests:
 ```shell
 mvn verify
 ```
+
+# Code formatting
+
+The code format is documented in [.spotless](.spotless) and is applied when ever
+`mvn verify` is ran. It can also be applied directly using:
+
+```shell
+mvn spotless:apply
+```

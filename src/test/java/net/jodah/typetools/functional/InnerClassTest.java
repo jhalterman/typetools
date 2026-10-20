@@ -1,16 +1,15 @@
 package net.jodah.typetools.functional;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.AbstractTypeResolverTest;
+import net.jodah.typetools.TypeResolver;
+import net.jodah.typetools.functional.InnerClassTest.FooPrime.BarPrime;
+import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import net.jodah.typetools.AbstractTypeResolverTest;
-import net.jodah.typetools.TypeResolver;
-import net.jodah.typetools.functional.InnerClassTest.FooPrime.BarPrime;
-
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
+import static org.testng.Assert.assertEquals;
 
 /**
  * Tests that type arguments on inner classes are supported.

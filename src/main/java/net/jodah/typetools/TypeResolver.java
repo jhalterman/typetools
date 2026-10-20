@@ -75,13 +75,16 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code type} using type variable information from the
-   * {@code subType}. If no arguments can be resolved then {@code Unknown.class} is returned.
+   * Returns the raw class representing the argument for the {@code type} using
+   * type variable information from the {@code subType}. If no arguments can be
+   * resolved then {@code Unknown.class} is returned.
    *
    * @param type to resolve argument for
    * @param subType to extract type variable information from
-   * @return argument for {@code type} else {@link Unknown}.class if no type arguments are declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code type}
+   * @return argument for {@code type} else {@link Unknown}.class if no type
+   *         arguments are declared
+   * @throws IllegalArgumentException if more or less than one argument is
+   *         resolved for the {@code type}
    * @param <T> the type to resolve type variable for
    * @param <S> the subtype that binds the type variable
    */
@@ -90,14 +93,18 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code genericType} using type variable information from
-   * the {@code subType}. If {@code genericType} is an instance of class, then {@code genericType} is returned. If no
-   * arguments can be resolved then {@code Unknown.class} is returned.
+   * Returns the raw class representing the argument for the {@code genericType}
+   * using type variable information from the {@code subType}. If
+   * {@code genericType} is an instance of class, then {@code genericType} is
+   * returned. If no arguments can be resolved then {@code Unknown.class} is
+   * returned.
    *
    * @param genericType to resolve argument for
    * @param subType to extract type variable information from
-   * @return argument for {@code genericType} else {@link Unknown}.class if no type arguments are declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code genericType}
+   * @return argument for {@code genericType} else {@link Unknown}.class if no
+   *         type arguments are declared
+   * @throws IllegalArgumentException if more or less than one argument is
+   *         resolved for the {@code genericType}
    */
   public static Class<?> resolveRawArgument(Type genericType, Class<?> subType) {
     Class<?>[] arguments = resolveRawArguments(genericType, subType);
@@ -112,14 +119,15 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code type} using type variable information from
-   * the {@code subType}. Arguments for {@code type} that cannot be resolved are returned as {@code Unknown.class}. If
-   * no arguments can be resolved then {@code null} is returned.
+   * Returns an array of raw classes representing arguments for the {@code type}
+   * using type variable information from the {@code subType}. Arguments for
+   * {@code type} that cannot be resolved are returned as {@code Unknown.class}.
+   * If no arguments can be resolved then {@code null} is returned.
    *
    * @param type to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code type} else {@code null} if no type arguments are
-   *         declared
+   * @return array of raw classes representing arguments for the {@code type} else
+   *         {@code null} if no type arguments are declared
    * @param <T> the type to resolve type variable for
    * @param <S> the subtype that binds the type variable
    */
@@ -128,22 +136,28 @@ public final class TypeResolver {
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
-   * by using the type information from given {@code context}.
-   * A convenience method which largely works the same as {@link #reify(Type, Class)}, but first resolves the
-   * generic type of {@code type}.
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible), by using the type information from given
+   * {@code context}. A convenience method which largely works the same as
+   * {@link #reify(Type, Class)}, but first resolves the generic type of
+   * {@code type}.
    *
    * @param type the class whose generic type to traverse
-   * @param context the class that serves as starting point to resolve replacements of type variables
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @param context the class that serves as starting point to resolve
+   *        replacements of type variables
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
    * @param <T> the type to resolve type variable for
    * @param <S> the subtype that binds the type variable
    */
@@ -152,14 +166,18 @@ public final class TypeResolver {
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
-   * by using the type information from given {@code context}.
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible), by using the type information from given
+   * {@code context}.
    * <p>
-   * Generic types used as input to this method are commonly obtained using reflection, e.g. via
-   * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
+   * Generic types used as input to this method are commonly obtained using
+   * reflection, e.g. via {@link Field#getGenericType()},
+   * {@link Method#getGenericReturnType()},
+   * {@link Method#getGenericParameterTypes()}.
    * <p>
-   * Example:
-   * <blockquote><pre>{@code
+   * Example: <blockquote>
+   * 
+   * <pre>{@code
    *   class A<T> {
    *     public T something;
    *     public Optional<List<T>> compute() { ... }
@@ -168,77 +186,96 @@ public final class TypeResolver {
    *   class B extends A<Number> {
    *     public <? extends Collection<List<?>>> collect() { ... }
    *   }
-   * }</pre></blockquote>
-   *
-   * Reifying the generic return type of the method {@code compute} with {@code B.class} as {@code context} will
-   * yield the parameterized type {@code Optional<List<Number>>}. Note that not the raw type ({@link java.util.Optional}
-   * is returned, but the input type is reified recursively.
-   * Reifying the generic type of the field {@code something} with {@code B.class} as {@code context} will yield
-   * {@code Number.class}.
+   * }</pre>
+   * 
+   * </blockquote> Reifying the generic return type of the method {@code compute}
+   * with {@code B.class} as {@code context} will yield the parameterized type
+   * {@code Optional<List<Number>>}. Note that not the raw type
+   * ({@link java.util.Optional} is returned, but the input type is reified
+   * recursively. Reifying the generic type of the field {@code something} with
+   * {@code B.class} as {@code context} will yield {@code Number.class}.
    * <p>
-   * Note that type variables with no explicit upper bound are reified to {@link Object}, and {@code Unknown.class} is
-   * never returned.
+   * Note that type variables with no explicit upper bound are reified to
+   * {@link Object}, and {@code Unknown.class} is never returned.
    *
    * @param type the generic type to traverse
-   * @param context the class that serves as starting point to resolve replacements of type variables
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @param context the class that serves as starting point to resolve
+   *        replacements of type variables
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
    */
   public static Type reify(Type type, Class<?> context) {
     return reify(type, getTypeVariableMap(context, null));
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible).
-   * A convenience wrapper around {@link #reify(Type, Class)}, for when no context is needed/available.
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible). A convenience wrapper around
+   * {@link #reify(Type, Class)}, for when no context is needed/available.
    * <p>
-   * Generic types used as input to this method are commonly obtained using reflection, e.g. via
-   * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
+   * Generic types used as input to this method are commonly obtained using
+   * reflection, e.g. via {@link Field#getGenericType()},
+   * {@link Method#getGenericReturnType()},
+   * {@link Method#getGenericParameterTypes()}.
    * <p>
-   * Example:
-   * <blockquote><pre>{@code
+   * Example: <blockquote>
+   * 
+   * <pre>{@code
    *   class X {
    *     public List<? extends Collection<List<? extends Number>>> collectList() { ... }
    *     public Set<?> collectSet() { ... }
    *   }
-   * }</pre></blockquote>
-   *
-   * Reifying the generic return type of the method {@code collectList} will yield the parameterized type
-   * {@code List<Collection<List<Number>>>}.
-   * Reifying the generic return type of the method {@code collectSet} will yield the parameterized type
-   * {@code Set<Object>}, since there is no explicit upper bound for the wildcard type given.
+   * }</pre>
+   * 
+   * </blockquote> Reifying the generic return type of the method
+   * {@code collectList} will yield the parameterized type
+   * {@code List<Collection<List<Number>>>}. Reifying the generic return type of
+   * the method {@code collectSet} will yield the parameterized type
+   * {@code Set<Object>}, since there is no explicit upper bound for the wildcard
+   * type given.
    *
    * @param type the generic type to traverse
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
    */
   public static Type reify(Type type) {
     return reify(type, new HashMap<TypeVariable<?>, Type>(0));
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code genericType} using type variable information
-   * from the {@code subType}. Arguments for {@code genericType} that cannot be resolved are returned as
-   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is returned.
+   * Returns an array of raw classes representing arguments for the
+   * {@code genericType} using type variable information from the {@code subType}.
+   * Arguments for {@code genericType} that cannot be resolved are returned as
+   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is
+   * returned.
    *
    * @param genericType to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code genericType} else {@code null} if no type
-   *         arguments are declared
+   * @return array of raw classes representing arguments for the
+   *         {@code genericType} else {@code null} if no type arguments are
+   *         declared
    */
   public static Class<?>[] resolveRawArguments(Type genericType, Class<?> subType) {
     Class<?>[] result = null;
@@ -274,8 +311,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the generic {@code type} using type variable information from the {@code subType} else {@code null} if the
-   * generic type cannot be resolved.
+   * Returns the generic {@code type} using type variable information from the
+   * {@code subType} else {@code null} if the generic type cannot be resolved.
    *
    * @param type to resolve generic type for
    * @param subType to extract type variable information from
@@ -308,12 +345,14 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the raw class for the {@code genericType}, using the type variable information from the {@code subType}
-   * else {@link Unknown} if the raw class cannot be resolved.
+   * Resolves the raw class for the {@code genericType}, using the type variable
+   * information from the {@code subType} else {@link Unknown} if the raw class
+   * cannot be resolved.
    *
    * @param genericType to resolve raw class for
-   * @param subType   to extract type variable information from
-   * @return raw class for the {@code genericType} else {@link Unknown} if it cannot be resolved
+   * @param subType to extract type variable information from
+   * @return raw class for the {@code genericType} else {@link Unknown} if it
+   *         cannot be resolved
    */
   public static Class<?> resolveRawClass(Type genericType, Class<?> subType) {
     return resolveRawClass(genericType, subType, null);
@@ -339,7 +378,8 @@ public final class TypeResolver {
   }
 
   private static Type reify(final Type genericType, final Map<TypeVariable<?>, Type> typeVariableTypeMap) {
-    // Check for terminal cases to avoid allocating HashMap and trivial call.
+    // Check for terminal cases to avoid allocating HashMap and trivial
+    // call.
     if (genericType == null)
       return null;
     else if (genericType instanceof Class<?>)
@@ -349,13 +389,15 @@ public final class TypeResolver {
   }
 
   /**
-   * Works like {@link #resolveRawClass(Type, Class, Class)} but does not stop at raw classes. Instead, traverses
-   * referenced types.
+   * Works like {@link #resolveRawClass(Type, Class, Class)} but does not stop at
+   * raw classes. Instead, traverses referenced types.
    *
-   * @param partial contains a mapping of generic types to reified types. A value of {@code null} inside a
-   *        {@link ReifiedParameterizedType} instance means that this type is currently being reified.
+   * @param partial contains a mapping of generic types to reified types. A value
+   *        of {@code null} inside a {@link ReifiedParameterizedType} instance
+   *        means that this type is currently being reified.
    */
-  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap, Map<ParameterizedType, ReifiedParameterizedType> partial) {
+  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap,
+      Map<ParameterizedType, ReifiedParameterizedType> partial) {
     // Terminal case.
     if (genericType instanceof Class<?>)
       return genericType;
@@ -363,7 +405,8 @@ public final class TypeResolver {
     // Recursive cases.
     if (genericType instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) genericType;
-      // Self-referential type needs special attention. Otherwise we might accidentally overflow the stack.
+      // Self-referential type needs special attention. Otherwise we might
+      // accidentally overflow the stack.
       if (partial.containsKey(parameterizedType)) {
         ReifiedParameterizedType res = partial.get(genericType);
         res.addReifiedTypeArgument(res);
@@ -374,7 +417,8 @@ public final class TypeResolver {
       partial.put(parameterizedType, result);
       for (Type genericTypeArgument : genericTypeArguments) {
         Type reified = reify(genericTypeArgument, typeVariableMap, partial);
-        // Self-references are added as soon as they are detected, see above.
+        // Self-references are added as soon as they are detected, see
+        // above.
         // In this case, skip adding.
         if (reified != result) {
           result.addReifiedTypeArgument(reified);
@@ -392,17 +436,19 @@ public final class TypeResolver {
       if (reifiedComponentType instanceof Class<?>)
         return Array.newInstance((Class<?>) reifiedComponentType, 0).getClass();
 
-      throw new UnsupportedOperationException(
-          "Attempted to reify generic array type, whose generic component type " +
-          "could not be reified to some Class<?>. Handling for this case is not implemented");
+      throw new UnsupportedOperationException("Attempted to reify generic array type, whose generic component type "
+          + "could not be reified to some Class<?>. Handling for this case is not implemented");
     } else if (genericType instanceof TypeVariable<?>) {
       final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
       final Type mapping = typeVariableMap.get(typeVariable);
       if (mapping != null)
         return reify(mapping, typeVariableMap, partial);
-      // NOTE: According to https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
-      // if there are multiple upper bounds where one bound is a class, then this must be the
-      // leftmost/first bound. Therefore we blindly take this one, hoping it is the most relevant.
+      // NOTE: According to
+      // https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
+      // if there are multiple upper bounds where one bound is a class,
+      // then this must be the
+      // leftmost/first bound. Therefore we blindly take this one, hoping
+      // it is the most relevant.
       // Hibernate does the same when erasing types, see also
       // https://github.com/hibernate/hibernate-validator/blob/6.0/engine/src/main/java/org/hibernate/validator/internal/util/TypeHelper.java#L181-L186
       return reify(typeVariable.getBounds()[0], typeVariableMap, partial);
@@ -413,15 +459,13 @@ public final class TypeResolver {
       if (upperBounds.length == 1 && lowerBounds.length == 0)
         return reify(upperBounds[0], typeVariableMap, partial);
 
-      throw new UnsupportedOperationException(
-          "Attempted to reify wildcard type with name '" + wildcardType.getTypeName() +
-          "' which has " + upperBounds.length + " upper bounds and " + lowerBounds.length +
-          " lower bounds. Reification of wildcard types is only supported for" +
-          " the trivial case of exactly 1 upper bound and 0 lower bounds.");
+      throw new UnsupportedOperationException("Attempted to reify wildcard type with name '"
+          + wildcardType.getTypeName() + "' which has " + upperBounds.length + " upper bounds and " + lowerBounds.length
+          + " lower bounds. Reification of wildcard types is only supported for"
+          + " the trivial case of exactly 1 upper bound and 0 lower bounds.");
     }
-    throw new UnsupportedOperationException(
-        "Reification of type with name '" + genericType.getTypeName() + "' and " +
-        "class name '" + genericType.getClass().getName() + "' is not implemented.");
+    throw new UnsupportedOperationException("Reification of type with name '" + genericType.getTypeName() + "' and "
+        + "class name '" + genericType.getClass().getName() + "' is not implemented.");
   }
 
   private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
@@ -485,10 +529,11 @@ public final class TypeResolver {
   }
 
   /**
-   * Populates the {@code map} with variable/argument pairs for the given {@code types}.
+   * Populates the {@code map} with variable/argument pairs for the given
+   * {@code types}.
    */
   private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
-                        boolean depthFirst) {
+      boolean depthFirst) {
     for (Type type : types) {
       if (type instanceof ParameterizedType) {
         ParameterizedType parameterizedType = (ParameterizedType) type;
@@ -506,7 +551,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Populates the {@code map} with variable/argument pairs for the given {@code type}.
+   * Populates the {@code map} with variable/argument pairs for the given
+   * {@code type}.
    */
   private static void populateTypeArgs(ParameterizedType type, Map<TypeVariable<?>, Type> map, boolean depthFirst) {
     if (type.getRawType() instanceof Class) {
@@ -549,10 +595,12 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the first bound for the {@code typeVariable}, returning {@code Unknown.class} if none can be resolved.
+   * Resolves the first bound for the {@code typeVariable}, returning
+   * {@code Unknown.class} if none can be resolved.
    *
    * @param typeVariable to resolve the first bound for.
-   * @return the first bound for the {@code typeVariable} or {@code Unknown.class} if none can be resolved
+   * @return the first bound for the {@code typeVariable} or {@code Unknown.class}
+   *         if none can be resolved
    */
   public static Type resolveBound(TypeVariable<?> typeVariable) {
     Type[] bounds = typeVariable.getBounds();
@@ -568,8 +616,7 @@ public final class TypeResolver {
 
   private interface LambdaArgumentResolver {
 
-    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-                Map<TypeVariable<?>, Type> map);
+    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType, Map<TypeVariable<?>, Type> map);
   }
 
   private static final class NoopLambdaArgumentResolver implements LambdaArgumentResolver {
@@ -614,7 +661,8 @@ public final class TypeResolver {
       accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
       accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
 
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
+      // additional checks - make sure we get a result when invoking the
+      // Class::getConstantPool and
       // ConstantPool::getSize on a class
       Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
       GET_CONSTANT_POOL_SIZE.invoke(constantPool);
@@ -635,7 +683,8 @@ public final class TypeResolver {
       PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
     }
 
-    private static TypeResolverUtil createTypeResolverUtil() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    private static TypeResolverUtil createTypeResolverUtil()
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException {
       String className;
       // Poor-mans multi-release jar.
       if (JAVA_VERSION >= 22) {
@@ -652,11 +701,12 @@ public final class TypeResolver {
     }
 
     /**
-     * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
+     * Populates the {@code map} with variable/argument pairs for the
+     * {@code functionalInterface}.
      */
     @Override
     public void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-                     Map<TypeVariable<?>, Type> map) {
+        Map<TypeVariable<?>, Type> map) {
       // Find SAM
       for (Method m : functionalInterface.getMethods()) {
         if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
@@ -685,7 +735,8 @@ public final class TypeResolver {
           Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
               : ((Constructor<?>) member).getParameterTypes();
 
-          // Populate object type from arbitrary object method reference
+          // Populate object type from arbitrary object method
+          // reference
           int paramOffset = 0;
           if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
               && paramTypeVars.length == arguments.length + 1) {
@@ -694,7 +745,8 @@ public final class TypeResolver {
             paramOffset = 1;
           }
 
-          // Handle additional arguments that are captured from the lambda's enclosing scope
+          // Handle additional arguments that are captured from the
+          // lambda's enclosing scope
           int argOffset = 0;
           if (paramTypeVars.length < arguments.length) {
             argOffset = arguments.length - paramTypeVars.length;
@@ -726,10 +778,11 @@ public final class TypeResolver {
       Member result = null;
       for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
         Member member = getConstantPoolMethodAt(constantPool, i);
-        // Skip SerializedLambda constructors and members of the "type" class
+        // Skip SerializedLambda constructors and members of the "type"
+        // class
         if (member == null
             || (member instanceof Constructor
-            && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+                && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
             || member.getDeclaringClass().isAssignableFrom(type))
           continue;
 

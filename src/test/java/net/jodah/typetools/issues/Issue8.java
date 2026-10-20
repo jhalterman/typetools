@@ -23,8 +23,7 @@ public class Issue8 {
 
   public void test() {
     Type typeArgs = TypeResolver.reify(Foo.class, Bar.class);
-    assertEquals(
-        typeArgs.toString(),
+    assertEquals(typeArgs.toString(),
         "net.jodah.typetools.issues.Issue8$Foo<java.util.List<java.lang.Integer>, java.util.List<java.lang.String>>");
     assertTrue(typeArgs instanceof ParameterizedType);
     ParameterizedType par = (ParameterizedType) typeArgs;

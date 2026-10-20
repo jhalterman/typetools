@@ -1,6 +1,10 @@
 package net.jodah.typetools.functional;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.AbstractTypeResolverTest;
+import net.jodah.typetools.TypeResolver;
+import net.jodah.typetools.TypeResolver.Unknown;
+import org.testng.annotations.Factory;
+import org.testng.annotations.Test;
 
 import java.io.Serializable;
 import java.util.Comparator;
@@ -14,12 +18,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.AbstractTypeResolverTest;
-import net.jodah.typetools.TypeResolver;
-import net.jodah.typetools.TypeResolver.Unknown;
+import static org.testng.Assert.assertEquals;
 
 /**
  * Tests the resolution of type arguments defined on lambda expressions.
@@ -102,7 +101,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from lambda expressions for simple functional interfaces.
+   * Asserts that arguments can be resolved from lambda expressions for simple
+   * functional interfaces.
    */
   public void shouldResolveArguments() {
     Predicate<String> predicate = str -> true;
@@ -133,7 +133,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from instance method references for simple functional interfaces.
+   * Asserts that arguments can be resolved from instance method references for
+   * simple functional interfaces.
    */
   public void shouldResolveArgumentsFromInstanceMethodRefs() {
     Baz baz = new Baz();
@@ -143,7 +144,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from static method references for simple functional interfaces.
+   * Asserts that arguments can be resolved from static method references for
+   * simple functional interfaces.
    */
   public void shouldResolveArgumentsFromStaticMethodRefs() {
     Comparator<String> c = String::compareToIgnoreCase;
@@ -152,7 +154,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from arbitrary object method references for simple functional interfaces.
+   * Asserts that arguments can be resolved from arbitrary object method
+   * references for simple functional interfaces.
    */
   public void shouldResolveArgumentsFromArbitraryObjectMethodRefs() {
     Predicate<String> p1 = Baz::eval;
@@ -167,7 +170,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved for interfaces that contain additional Object.class overriding methods.
+   * Asserts that arguments can be resolved for interfaces that contain additional
+   * Object.class overriding methods.
    */
   public void shouldResolveArgumentsFromNonSamMethodRef() throws Throwable {
     I1<String, Integer> fn = String::compareToIgnoreCase;
@@ -176,11 +180,10 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that method references with primitive type arguments that are auto boxed to primitive wrappers are properly
-   * handled.
-   *
-   * Note: disabled since method signature exposed via constant pool contains convert(String, Object). Subsequent
-   * bytecode contains convert(String, String). May need ASM to read.
+   * Asserts that method references with primitive type arguments that are auto
+   * boxed to primitive wrappers are properly handled. Note: disabled since method
+   * signature exposed via constant pool contains convert(String, Object).
+   * Subsequent bytecode contains convert(String, String). May need ASM to read.
    */
   @Test(enabled = false)
   public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
@@ -190,8 +193,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from lambda expressions for simple functional interfaces that contain
-   * multiple type parameters.
+   * Asserts that arguments can be resolved from lambda expressions for simple
+   * functional interfaces that contain multiple type parameters.
    */
   public void shouldResolveMultiArguments() {
     BiFunction<String, Long, Integer> biFn = (str1, str2) -> Integer.valueOf(str1 + str2);
@@ -216,8 +219,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from method references for simple functional interfaces that contain
-   * multiple type parameters.
+   * Asserts that arguments can be resolved from method references for simple
+   * functional interfaces that contain multiple type parameters.
    */
   public void shouldResolveMultiArgumentsForMethodRefs() {
     Baz baz = new Baz();
@@ -234,7 +237,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from a lambda expression when declared on a subclass of some type.
+   * Asserts that arguments can be resolved from a lambda expression when declared
+   * on a subclass of some type.
    */
   public void shouldResolveSubclassArguments() {
     FnSubclass<String, Integer> fn = str -> Integer.valueOf(str);
@@ -249,7 +253,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   }
 
   /**
-   * Asserts that arguments can be resolved from a method reference when declared on a subclass of some type.
+   * Asserts that arguments can be resolved from a method reference when declared
+   * on a subclass of some type.
    */
   public void shouldResolveSubclassArgumentsForMethodRefs() {
     FnSubclass<String, Integer> fn = Integer::valueOf;

@@ -1,14 +1,12 @@
 package net.jodah.typetools.issues;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.TypeResolver;
+import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.util.function.Predicate;
 
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.TypeResolver;
-
+import static org.testng.Assert.assertEquals;
 
 @Test
 public class Issue19 {
