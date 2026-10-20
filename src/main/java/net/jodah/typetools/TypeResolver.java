@@ -583,15 +583,16 @@ public final class TypeResolver {
     private final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
 
     LambdaArgumentResolver() throws Throwable {
-      AccessMaker accessSetter = TypeResolverUtil.createAccessMaker();
+      TypeResolverUtil typeResolverUtil = createTypeResolverUtil();
+      AccessMaker accessSetter = typeResolverUtil.createAccessMaker();
 
-      Class<?> sharedSecretsClass = TypeResolverUtil.getSharedSecretsClass();
+      Class<?> sharedSecretsClass = typeResolverUtil.getSharedSecretsClass();
       Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
       accessSetter.makeAccessible(javaLangAccessGetter);
       JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
       GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
 
-      Class<?> constantPoolClass = TypeResolverUtil.getConstantPoolClass();
+      Class<?> constantPoolClass = typeResolverUtil.getConstantPoolClass();
       GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
       GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
 
@@ -619,6 +620,22 @@ public final class TypeResolver {
       types.put(short.class, Short.class);
       types.put(void.class, Void.class);
       PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
+    }
+
+    private static TypeResolverUtil createTypeResolverUtil() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        String className;
+        // Poor-mans multi-release jar.
+        if (JAVA_VERSION >= 22) {
+            className = "net.jodah.typetools.TypeResolverUtil22";
+        } else if(JAVA_VERSION >= 12) {
+            className = "net.jodah.typetools.TypeResolverUtil12";
+        } else if(JAVA_VERSION >= 9) {
+            className = "net.jodah.typetools.TypeResolverUtil9";
+        } else {
+            className = "net.jodah.typetools.TypeResolverUtil8";
+        }
+        // Use reflection to avoid creating a circular dependency
+        return (TypeResolverUtil) Class.forName(className).newInstance();
     }
 
     /**
