@@ -28,12 +28,12 @@ pushd target/gh-pages
   mv -v ../reports/apidocs/* javadoc
   git add -A -f javadoc
   git commit -m "Publish v$VERSION Javadoc"
-  git push -fq origin gh-pages > /dev/null
+  git push origin gh-pages
 popd
 
 echo "* Published JavaDocs to https://jodah.net/typetools/javadoc/"
 
-git checkout master
+git checkout main
 git status
 
 echo "TODO:"
