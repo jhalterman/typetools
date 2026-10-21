@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial implementation
 
-[Unreleased]: https://github.com/jhalterman/typetools/compare/typetools-0.6.3...HEAD
+[Unreleased]: https://github.com/jhalterman/typetools/compare/v0.7.0...HEAD
 [0.7.0]: https://github.com/jhalterman/typetools/compare/typetools-0.6.3...v0.7.0
 [0.6.3]: https://github.com/jhalterman/typetools/compare/typetools-0.6.2...typetools-0.6.3
 [0.6.2]: https://github.com/jhalterman/typetools/compare/typetools-0.6.1...typetools-0.6.2
