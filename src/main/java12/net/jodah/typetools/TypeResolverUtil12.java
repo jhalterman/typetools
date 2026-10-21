@@ -10,7 +10,7 @@ import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 
-final class TypeResolverUtil12 implements TypeResolverUtil{
+final class TypeResolverUtil12 implements TypeResolverUtil {
 
   @Override
   public Class<?> getConstantPoolClass() throws Throwable {
@@ -29,7 +29,8 @@ final class TypeResolverUtil12 implements TypeResolverUtil{
       return createAccessMakerUsingMethodHandle();
     } catch (IllegalAccessException ignored) {
       // Fall back to IMPL_LOOKUP via sun.misc.Unsafe
-      // On Java 22+ this will warn that sun.misc.Unsafe::staticFieldOffset has been terminally deprecated
+      // On Java 22+ this will warn that sun.misc.Unsafe::staticFieldOffset has been
+      // terminally deprecated
       return createAccessMakerUsingUnsafe();
     }
   }
@@ -37,10 +38,11 @@ final class TypeResolverUtil12 implements TypeResolverUtil{
   private static AccessMaker createAccessMakerUsingMethodHandle() throws IllegalAccessException, NoSuchFieldException {
     MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(AccessibleObject.class, MethodHandles.lookup());
     MethodHandle overrideSetter = lookup.findSetter(AccessibleObject.class, "override", boolean.class);
-    return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
+    return object -> overrideSetter.invokeWithArguments(new Object[] { object, true });
   }
 
-  private static AccessMaker createAccessMakerUsingUnsafe() throws PrivilegedActionException, NoSuchFieldException, IllegalAccessException {
+  private static AccessMaker createAccessMakerUsingUnsafe()
+      throws PrivilegedActionException, NoSuchFieldException, IllegalAccessException {
     Unsafe unsafe = AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>) () -> {
       Field f = Unsafe.class.getDeclaredField("theUnsafe");
       f.setAccessible(true);
@@ -48,13 +50,15 @@ final class TypeResolverUtil12 implements TypeResolverUtil{
     });
 
     // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-    // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
+    // Access checking can still be circumvented by using the Unsafe technique to
+    // get the implementation lookup from MethodHandles.
     Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
     long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
     Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-    MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
+    MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase,
+        implLookupFieldOffset);
     MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-    return object -> overrideSetter.invokeWithArguments(new Object[]{object, true});
+    return object -> overrideSetter.invokeWithArguments(new Object[] { object, true });
   }
 
 }

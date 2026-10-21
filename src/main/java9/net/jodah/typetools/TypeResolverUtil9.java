@@ -7,7 +7,7 @@ import java.lang.reflect.Field;
 import java.security.AccessController;
 import java.security.PrivilegedExceptionAction;
 
-final class TypeResolverUtil9 implements TypeResolverUtil{
+final class TypeResolverUtil9 implements TypeResolverUtil {
 
   @Override
   public Class<?> getConstantPoolClass() throws Throwable {
@@ -19,7 +19,8 @@ final class TypeResolverUtil9 implements TypeResolverUtil{
     try {
       return Class.forName("jdk.internal.misc.SharedSecrets");
     } catch (ClassNotFoundException e) {
-      // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
+      // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to
+      // jdk.internal.access.
       return Class.forName("jdk.internal.access.SharedSecrets");
     }
   }
@@ -36,7 +37,8 @@ final class TypeResolverUtil9 implements TypeResolverUtil{
       return (Unsafe) f.get(null);
     });
 
-    // access control got strengthened in Java 9, but can be circumvented with Unsafe.
+    // access control got strengthened in Java 9, but can be circumvented with
+    // Unsafe.
     Field overrideField = AccessibleObject.class.getDeclaredField("override");
     long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
     return accessibleObject -> unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);

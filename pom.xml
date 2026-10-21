@@ -265,6 +265,14 @@
                 <artifactId>spotless-maven-plugin</artifactId>
                 <configuration>
                     <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/main/java9/**/*.java</include>
+                            <include>src/main/java12/**/*.java</include>
+                            <include>src/main/java22/**/*.java</include>
+                            <include>src/main/module-info/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
                         <eclipse>
                             <file>${project.basedir}/.spotless/eclipse-formatter-settings.xml</file>
                         </eclipse>
