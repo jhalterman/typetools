@@ -2,14 +2,19 @@ package net.jodah.typetools;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.IdentityHashMap;
+import java.util.Map;
 
 class ReifiedParameterizedType implements ParameterizedType {
   private final ParameterizedType original;
   private final Type[] reifiedTypeArguments;
+  // Set after the arguments so recursive owner bounds can reuse this instance.
+  private Type ownerType;
   private int reified = 0;
 
   ReifiedParameterizedType(ParameterizedType original) {
     this.original = original;
+    this.ownerType = original.getOwnerType();
     this.reifiedTypeArguments = new Type[original.getActualTypeArguments().length];
   }
 
@@ -41,7 +46,11 @@ class ReifiedParameterizedType implements ParameterizedType {
 
   @Override
   public Type getOwnerType() {
-    return original.getOwnerType();
+    return ownerType;
+  }
+
+  void setOwnerType(Type ownerType) {
+    this.ownerType = ownerType;
   }
 
   /**
@@ -50,6 +59,13 @@ class ReifiedParameterizedType implements ParameterizedType {
    */
   @Override
   public String toString() {
+    return toString(new IdentityHashMap<Type, Boolean>());
+  }
+
+  private String toString(Map<Type, Boolean> visiting) {
+    if (visiting.containsKey(this))
+      return "...";
+    visiting.put(this, Boolean.TRUE);
     final Type ownerType = getOwnerType();
     final Type rawType = getRawType();
     final Type[] actualTypeArguments = getActualTypeArguments();
@@ -60,7 +76,7 @@ class ReifiedParameterizedType implements ParameterizedType {
       if (ownerType instanceof Class) {
         sb.append(((Class) ownerType).getName());
       } else {
-        sb.append(ownerType.toString());
+        sb.append(typeName(ownerType, visiting));
       }
 
       sb.append("$");
@@ -104,60 +120,64 @@ class ReifiedParameterizedType implements ParameterizedType {
           // is self-loop where.
           sb.append("...");
         } else {
-          sb.append(t.getTypeName());
+          sb.append(typeName(t, visiting));
         }
       }
       sb.append(">");
     }
 
+    visiting.remove(this);
     return sb.toString();
+  }
+
+  private static String typeName(Type type, Map<Type, Boolean> visiting) {
+    return type instanceof ReifiedParameterizedType ? ((ReifiedParameterizedType) type).toString(visiting)
+        : type.getTypeName();
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
+    return equals(this, o, new IdentityHashMap<Object, Object>(), new IdentityHashMap<Object, Object>());
+  }
+
+  private static boolean equals(Object a, Object b, Map<Object, Object> left, Map<Object, Object> right) {
+    // Compare back references before identity: a shared node can occur at different
+    // positions in the two graphs.
+    if (left.containsKey(a) || right.containsKey(b))
+      return left.get(a) == b && right.get(b) == a;
+    if (a == b)
       return true;
-    }
-    if (!(o instanceof ParameterizedType)) {
+    if ((a instanceof ParameterizedType) != (b instanceof ParameterizedType))
       return false;
-    }
+    if (!(a instanceof ParameterizedType))
+      return a != null && a.equals(b);
 
-    ParameterizedType that = (ParameterizedType) o;
-    return equals(getRawType(), that.getRawType()) && equals(getOwnerType(), that.getOwnerType())
-        && selfReferentialArrayEquals(this, reifiedTypeArguments, that, that.getActualTypeArguments());
-  }
-
-  private static boolean equals(Object a, Object b) {
-    // Replace with Objects.equals
-    return (a == b) || (a != null && a.equals(b));
-  }
-
-  private static boolean selfReferentialArrayEquals(Type a, Type[] aValues, Type b, Type[] bValues) {
-    if (aValues.length != bValues.length) {
-      return false;
-    }
-
-    for (int i = 0; i < aValues.length; i++) {
-      Type aValue = aValues[i];
-      Type bValue = bValues[i];
-      // both must loop, or not loop
-      if ((aValue == a) != (bValue == b)) {
+    ParameterizedType first = (ParameterizedType) a;
+    ParameterizedType second = (ParameterizedType) b;
+    left.put(a, b);
+    right.put(b, a);
+    try {
+      if (!equals(first.getRawType(), second.getRawType(), left, right)
+          || !equals(first.getOwnerType(), second.getOwnerType(), left, right))
         return false;
-      }
-      // skip loops
-      if (aValue == a) {
-        continue;
-      }
-      if (!equals(aValue, bValue)) {
+      Type[] firstArguments = first.getActualTypeArguments();
+      Type[] secondArguments = second.getActualTypeArguments();
+      if (firstArguments.length != secondArguments.length)
         return false;
+      for (int i = 0; i < firstArguments.length; i++) {
+        if (!equals(firstArguments[i], secondArguments[i], left, right))
+          return false;
       }
+      return true;
+    } finally {
+      left.remove(a);
+      right.remove(b);
     }
-    return true;
   }
 
   @Override
   public int hashCode() {
-    return selfReferentialArrayHashCode(this, reifiedTypeArguments) ^ hashCode(getRawType()) ^ hashCode(getOwnerType());
+    return hashCode(this, new IdentityHashMap<Type, Boolean>());
   }
 
   static int hashCode(Object o) {
@@ -165,12 +185,23 @@ class ReifiedParameterizedType implements ParameterizedType {
     return o != null ? o.hashCode() : 0;
   }
 
-  private static int selfReferentialArrayHashCode(Type a, Type[] aValues) {
-    int result = 1;
-    for (Type aValue : aValues) {
-      // skip loops
-      result = 31 * result + (aValue == a ? 0 : hashCode(aValue));
+  private static int hashCode(Type type, Map<Type, Boolean> visiting) {
+    if (!(type instanceof ParameterizedType))
+      return hashCode(type);
+    // Track the current path, not all visited nodes: repeated acyclic arguments
+    // must retain the same hash as independently constructed equal arguments.
+    if (visiting.containsKey(type))
+      return 0;
+    visiting.put(type, Boolean.TRUE);
+    ParameterizedType parameterizedType = (ParameterizedType) type;
+    try {
+      int argumentsHash = 1;
+      for (Type argument : parameterizedType.getActualTypeArguments())
+        argumentsHash = 31 * argumentsHash + hashCode(argument, visiting);
+      return argumentsHash ^ hashCode(parameterizedType.getRawType(), visiting)
+          ^ hashCode(parameterizedType.getOwnerType(), visiting);
+    } finally {
+      visiting.remove(type);
     }
-    return result;
   }
 }
