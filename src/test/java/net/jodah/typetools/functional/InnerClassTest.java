@@ -9,7 +9,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests that type arguments on inner classes are supported.
@@ -35,6 +35,6 @@ public class InnerClassTest extends AbstractTypeResolverTest {
 
   @Test
   public void shouldResolveTypeArgumentOnInnerClass() {
-    assertEquals(TypeResolver.resolveRawArgument(List.class, BarPrime.class), Integer.class);
+    assertThat(TypeResolver.resolveRawArgument(List.class, BarPrime.class)).isEqualTo(Integer.class);
   }
 }

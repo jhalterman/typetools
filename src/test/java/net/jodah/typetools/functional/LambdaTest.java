@@ -18,7 +18,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests the resolution of type arguments defined on lambda expressions.
@@ -111,11 +111,11 @@ public class LambdaTest extends AbstractTypeResolverTest {
     Consumer<String> consumer = s -> {
     };
 
-    assertEquals(TypeResolver.resolveRawArgument(Predicate.class, predicate.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArgument(Supplier.class, supplier.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass()), String.class);
+    assertThat(TypeResolver.resolveRawArgument(Predicate.class, predicate.getClass())).isEqualTo(String.class);
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
+    assertThat(TypeResolver.resolveRawArgument(Supplier.class, supplier.getClass())).isEqualTo(String.class);
+    assertThat(TypeResolver.resolveRawArgument(Consumer.class, consumer.getClass())).isEqualTo(String.class);
   }
 
   /**
@@ -127,9 +127,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
       a.incrementAndGet();
       return (long) s.hashCode();
     };
-
-    assertEquals(new Class<?>[] { String.class, Long.class },
-        TypeResolver.resolveRawArguments(Function.class, func.getClass()));
+    assertThat(TypeResolver.resolveRawArguments(Function.class, func.getClass())) //
+        .containsExactly(String.class, Long.class);
   }
 
   /**
@@ -140,7 +139,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
     Baz baz = new Baz();
     Predicate<String> p1 = baz::evaluate;
 
-    assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
+    assertThat(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass())).isEqualTo(String.class);
   }
 
   /**
@@ -150,7 +149,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
   public void shouldResolveArgumentsFromStaticMethodRefs() {
     Comparator<String> c = String::compareToIgnoreCase;
 
-    assertEquals(TypeResolver.resolveRawArgument(Comparator.class, c.getClass()), String.class);
+    assertThat(TypeResolver.resolveRawArgument(Comparator.class, c.getClass())).isEqualTo(String.class);
   }
 
   /**
@@ -162,11 +161,11 @@ public class LambdaTest extends AbstractTypeResolverTest {
     BiPredicate<Baz, String> p2 = Baz::evaluate;
     TriPredicate<Baz, String, Integer> p3 = Baz::evaluate2;
 
-    assertEquals(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass()), String.class);
-    assertEquals(TypeResolver.resolveRawArguments(BiPredicate.class, p2.getClass()),
-        new Class<?>[] { Baz.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(TriPredicate.class, p3.getClass()),
-        new Class<?>[] { Baz.class, String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArgument(Predicate.class, p1.getClass())).isEqualTo(String.class);
+    assertThat(TypeResolver.resolveRawArguments(BiPredicate.class, p2.getClass())) //
+        .containsExactly(Baz.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(TriPredicate.class, p3.getClass())) //
+        .containsExactly(Baz.class, String.class, Integer.class);
   }
 
   /**
@@ -175,8 +174,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
    */
   public void shouldResolveArgumentsFromNonSamMethodRef() throws Throwable {
     I1<String, Integer> fn = String::compareToIgnoreCase;
-    assertEquals(TypeResolver.resolveRawArguments(I1.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(I1.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   /**
@@ -188,8 +187,8 @@ public class LambdaTest extends AbstractTypeResolverTest {
   @Test(enabled = false)
   public void shouldResolveArgumentsForAutoBoxedMethodRefArgument() throws Throwable {
     BiFunction<String, Boolean, Integer> fn1 = Baz::convert;
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, fn1.getClass()),
-        new Class<?>[] { String.class, Boolean.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(BiFunction.class, fn1.getClass())) //
+        .containsExactly(String.class, Boolean.class, Integer.class);
   }
 
   /**
@@ -206,16 +205,16 @@ public class LambdaTest extends AbstractTypeResolverTest {
     Bar<String, Long, Integer, Double> bar = (a, b, c) -> {
     };
 
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, biFn.getClass()),
-        new Class<?>[] { String.class, Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer1.getClass()),
-        new Class<?>[] { String.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, consumer2.getClass()),
-        new Class<?>[] { String.class, Long.class });
-    assertEquals(TypeResolver.resolveRawArguments(Foo.class, foo.getClass()),
-        new Class<?>[] { String.class, Long.class, Integer.class, Double.class });
-    assertEquals(TypeResolver.resolveRawArguments(Bar.class, bar.getClass()),
-        new Class<?>[] { String.class, Long.class, Integer.class, Unknown.class });
+    assertThat(TypeResolver.resolveRawArguments(BiFunction.class, biFn.getClass())) //
+        .containsExactly(String.class, Long.class, Integer.class);
+    assertThat(TypeResolver.resolveRawArguments(BiConsumer.class, consumer1.getClass())) //
+        .containsExactly(String.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(BiConsumer.class, consumer2.getClass())) //
+        .containsExactly(String.class, Long.class);
+    assertThat(TypeResolver.resolveRawArguments(Foo.class, foo.getClass())) //
+        .containsExactly(String.class, Long.class, Integer.class, Double.class);
+    assertThat(TypeResolver.resolveRawArguments(Bar.class, bar.getClass())) //
+        .containsExactly(String.class, Long.class, Integer.class, Unknown.class);
   }
 
   /**
@@ -228,12 +227,12 @@ public class LambdaTest extends AbstractTypeResolverTest {
     BiFunction<String, Long, Integer> f2 = Baz::applyStatic;
     Function3<Baz, String, Long, Integer> f3 = Baz::apply;
 
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f1.getClass()),
-        new Class<?>[] { String.class, Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(BiFunction.class, f2.getClass()),
-        new Class<?>[] { String.class, Long.class, Integer.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function3.class, f3.getClass()),
-        new Class<?>[] { Baz.class, String.class, Long.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(BiFunction.class, f1.getClass())) //
+        .containsExactly(String.class, Long.class, Integer.class);
+    assertThat(TypeResolver.resolveRawArguments(BiFunction.class, f2.getClass())) //
+        .containsExactly(String.class, Long.class, Integer.class);
+    assertThat(TypeResolver.resolveRawArguments(Function3.class, f3.getClass())) //
+        .containsExactly(Baz.class, String.class, Long.class, Integer.class);
   }
 
   /**
@@ -242,14 +241,14 @@ public class LambdaTest extends AbstractTypeResolverTest {
    */
   public void shouldResolveSubclassArguments() {
     FnSubclass<String, Integer> fn = str -> Integer.valueOf(str);
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   public void shouldResolveSubclassArgumentsForConstructor() {
     FnSubclass<String, Integer> fn = str -> new Integer(str);
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   /**
@@ -258,33 +257,33 @@ public class LambdaTest extends AbstractTypeResolverTest {
    */
   public void shouldResolveSubclassArgumentsForMethodRefs() {
     FnSubclass<String, Integer> fn = Integer::valueOf;
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   public void shouldResolveSubclassArgumentsForConstructorRef() {
     FnSubclass<String, Integer> fn = Integer::new;
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   public void shouldResolveTransposedSubclassArguments() {
     SelectingFn<Integer, Long, String> fn = (String str) -> Integer.valueOf(str);
-    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn.getClass()),
-        new Class<?>[] { Integer.class, Unknown.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn.getClass()),
-        new Class<?>[] { Integer.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(SelectingFn.class, fn.getClass())) //
+        .containsExactly(Integer.class, Unknown.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(ReverseFn.class, fn.getClass())) //
+        .containsExactly(Integer.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(String.class, Integer.class);
 
     StrToInt fn1 = (String str) -> Integer.valueOf(str);
-    assertEquals(TypeResolver.resolveRawArguments(StrToInt.class, fn1.getClass()), new Class<?>[] {});
-    assertEquals(TypeResolver.resolveRawArguments(SelectingFn.class, fn1.getClass()),
-        new Class<?>[] { Integer.class, Long.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(ReverseFn.class, fn1.getClass()),
-        new Class<?>[] { Integer.class, String.class });
-    assertEquals(TypeResolver.resolveRawArguments(Function.class, fn1.getClass()),
-        new Class<?>[] { String.class, Integer.class });
+    assertThat(TypeResolver.resolveRawArguments(StrToInt.class, fn1.getClass())).isEmpty();
+    assertThat(TypeResolver.resolveRawArguments(SelectingFn.class, fn1.getClass())) //
+        .containsExactly(Integer.class, Long.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(ReverseFn.class, fn1.getClass())) //
+        .containsExactly(Integer.class, String.class);
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn1.getClass())) //
+        .containsExactly(String.class, Integer.class);
   }
 
   /**
@@ -307,7 +306,7 @@ public class LambdaTest extends AbstractTypeResolverTest {
 
   private <T, R> void handlePassedFunction(Function<T, R> fn) {
     Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
-    assertEquals(typeArgs[0], UUID.class);
-    assertEquals(typeArgs[1], String.class);
+    assertThat(typeArgs[0]).isEqualTo(UUID.class);
+    assertThat(typeArgs[1]).isEqualTo(String.class);
   }
 }

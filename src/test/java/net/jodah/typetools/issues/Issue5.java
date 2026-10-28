@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 import java.util.function.BiConsumer;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * https://github.com/jhalterman/typetools/issues/5
@@ -25,7 +25,7 @@ public class Issue5 {
 
   public void test() {
     BiConsumer<Client, Service> bc = Client::bind;
-    assertEquals(TypeResolver.resolveRawArguments(BiConsumer.class, bc.getClass()),
-        new Class<?>[] { Client.class, Service.class });
+    assertThat(TypeResolver.resolveRawArguments(BiConsumer.class, bc.getClass())) //
+        .containsExactly(Client.class, Service.class);
   }
 }
