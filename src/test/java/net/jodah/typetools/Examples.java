@@ -5,6 +5,8 @@ import org.testng.annotations.Test;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * TypeTools examples.
  */
@@ -36,8 +38,8 @@ public class Examples {
 
   public void shouldResolveLayerSuperTypeInfo() {
     RouterDAO routerDAO = new RouterDAO();
-    assert routerDAO.persistentClass == Router.class;
-    assert routerDAO.idClass == Long.class;
+    assertThat(routerDAO.persistentClass).isEqualTo(Router.class);
+    assertThat(routerDAO.idClass).isEqualTo(Long.class);
   }
 
   static class Entity<ID extends Serializable> {
@@ -52,11 +54,13 @@ public class Examples {
 
   public void shouldResolveTypeFromFieldDeclaration() throws Exception {
     Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
-    assert TypeResolver.resolveRawClass(fieldType, SomeEntity.class) == Long.class;
+    Class<?> resolved = TypeResolver.resolveRawClass(fieldType, SomeEntity.class);
+    assertThat(resolved).isEqualTo(Long.class);
   }
 
   public void shouldResolveTypeFromMethodDeclaration() throws Exception {
     Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
-    assert TypeResolver.resolveRawClass(mutatorType, SomeEntity.class) == Long.class;
+    Class<?> resolved = TypeResolver.resolveRawClass(mutatorType, SomeEntity.class);
+    assertThat(resolved).isEqualTo(Long.class);
   }
 }

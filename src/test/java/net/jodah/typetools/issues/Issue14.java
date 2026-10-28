@@ -5,7 +5,7 @@ import org.testng.annotations.Test;
 
 import java.util.function.Consumer;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * https://github.com/jhalterman/typetools/issues/14
@@ -26,6 +26,6 @@ public class Issue14 {
     Consumer<String> print = printer::print;
     Class<?> type = TypeResolver.resolveRawArgument(Consumer.class, print.getClass());
 
-    assertEquals(type, String.class);
+    assertThat(type).isEqualTo(String.class);
   }
 }

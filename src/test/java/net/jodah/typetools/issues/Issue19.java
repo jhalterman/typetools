@@ -6,7 +6,7 @@ import org.testng.annotations.Test;
 import java.lang.reflect.Method;
 import java.util.function.Predicate;
 
-import static org.testng.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Test
 public class Issue19 {
@@ -18,6 +18,6 @@ public class Issue19 {
     Predicate<Method> a = withModifiers(1);
     Class<?> type = TypeResolver.resolveRawArgument(Predicate.class, a.getClass());
 
-    assertEquals(type, Method.class);
+    assertThat(type).isEqualTo(Method.class);
   }
 }
