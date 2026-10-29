@@ -1,7 +1,7 @@
 package net.jodah.typetools.issues;
 
 import net.jodah.typetools.TypeResolver;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -12,15 +12,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * https://github.com/jhalterman/typetools/issues/8
  */
-@Test
-public class Issue8 {
+class Issue8 {
+
   interface Foo<T1, T2> {
   }
 
   class Bar implements Foo<List<Integer>, List<String>> {
   }
 
-  public void test() {
+  @Test
+  void test() {
     Type typeArgs = TypeResolver.reify(Foo.class, Bar.class);
     assertThat(typeArgs.toString()).isEqualTo(
         "net.jodah.typetools.issues.Issue8$Foo<java.util.List<java.lang.Integer>, java.util.List<java.lang.String>>");

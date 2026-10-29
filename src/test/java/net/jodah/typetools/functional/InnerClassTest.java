@@ -1,10 +1,9 @@
 package net.jodah.typetools.functional;
 
-import net.jodah.typetools.AbstractTypeResolverTest;
 import net.jodah.typetools.TypeResolver;
+import net.jodah.typetools.TypeResolverCacheTest;
 import net.jodah.typetools.functional.InnerClassTest.FooPrime.BarPrime;
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,27 +13,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests that type arguments on inner classes are supported.
  */
-@Test
-public class InnerClassTest extends AbstractTypeResolverTest {
-  @Factory(dataProvider = "cacheDataProvider")
-  public InnerClassTest(boolean cacheEnabled) {
-    super(cacheEnabled);
-  }
+@TypeResolverCacheTest
+class InnerClassTest {
 
   public static class Foo<T extends Number> {
-    @SuppressWarnings("serial")
     public class Bar extends ArrayList<T> {
     }
   }
 
   public static class FooPrime extends Foo<Integer> {
-    @SuppressWarnings("serial")
     public class BarPrime extends Bar {
     }
   }
 
   @Test
-  public void shouldResolveTypeArgumentOnInnerClass() {
+  void shouldResolveTypeArgumentOnInnerClass() {
     assertThat(TypeResolver.resolveRawArgument(List.class, BarPrime.class)).isEqualTo(Integer.class);
   }
 }

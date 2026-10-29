@@ -1,6 +1,6 @@
 package net.jodah.typetools;
 
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Serializable;
 import java.lang.reflect.Type;
@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * TypeTools examples.
  */
-@Test
-public class Examples {
+class Examples {
+
   static class Device {
   }
 
@@ -36,7 +36,8 @@ public class Examples {
   static class RouterDAO extends DeviceDAO<Router> {
   }
 
-  public void shouldResolveLayerSuperTypeInfo() {
+  @Test
+  void shouldResolveLayerSuperTypeInfo() {
     RouterDAO routerDAO = new RouterDAO();
     assertThat(routerDAO.persistentClass).isEqualTo(Router.class);
     assertThat(routerDAO.idClass).isEqualTo(Long.class);
@@ -52,13 +53,15 @@ public class Examples {
   static class SomeEntity extends Entity<Long> {
   }
 
-  public void shouldResolveTypeFromFieldDeclaration() throws Exception {
+  @Test
+  void shouldResolveTypeFromFieldDeclaration() throws Exception {
     Type fieldType = Entity.class.getDeclaredField("id").getGenericType();
     Class<?> resolved = TypeResolver.resolveRawClass(fieldType, SomeEntity.class);
     assertThat(resolved).isEqualTo(Long.class);
   }
 
-  public void shouldResolveTypeFromMethodDeclaration() throws Exception {
+  @Test
+  void shouldResolveTypeFromMethodDeclaration() throws Exception {
     Type mutatorType = Entity.class.getDeclaredMethod("setId", Serializable.class).getGenericParameterTypes()[0];
     Class<?> resolved = TypeResolver.resolveRawClass(mutatorType, SomeEntity.class);
     assertThat(resolved).isEqualTo(Long.class);
