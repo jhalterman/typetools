@@ -775,31 +775,82 @@ public final class TypeResolver {
         return null;
       }
 
-      Member result = null;
+      Method candidateBoxUnBoxingMethod = null;
+      Member candidate = null;
       for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
         Member member = getConstantPoolMethodAt(constantPool, i);
-        // Skip SerializedLambda constructors and members of the "type"
-        // class
-        if (member == null
-            || (member instanceof Constructor
-                && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-            || member.getDeclaringClass().isAssignableFrom(type))
+
+        if (member == null) {
           continue;
+        }
+        // Skip SerializedLambda constructors
+        if (member instanceof Constructor
+            && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda")) {
+          continue;
+        }
+        // Skip members of the "type" class
+        if (member.getDeclaringClass().equals(type)) {
+          continue;
+        }
 
-        result = member;
+        candidate = member;
 
-        // Return if not valueOf method
-        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
-          break;
+        // Return if not a boxing method
+        if (candidateBoxUnBoxingMethod == null) {
+          if (member instanceof Method && (isBoxingMethod((Method) member) || isUnboxingMethod((Method) member))) {
+            candidateBoxUnBoxingMethod = (Method) member; // retain the last member if it is boxing or unboxing
+            continue;
+          }
+        }
+        break;
       }
 
-      return result;
+      if (candidateBoxUnBoxingMethod == null || candidate == candidateBoxUnBoxingMethod) {
+        return candidate;
+      }
+
+      // @formatter:off
+      //
+      // if the constantpool ends with a boxing method and the candidate is a
+      // constructor, then special care is needed
+      // | constructor type   | prev type       | end result      |
+      // | any                | boxing method   | boxing method   |
+      // | !primitive wrapper | unboxing method | unboxing method |
+      // | primitive wrapper  | unboxing method | constructor     |
+      //
+      // @formatter:on
+      if (!(candidate instanceof Constructor)) {
+        return candidate;
+      } else if (isBoxingMethod(candidateBoxUnBoxingMethod)) {
+        return candidateBoxUnBoxingMethod;
+      } else if (/* implied isUnboxingMethod && */ !isConstructorForPrimitiveWrapper((Constructor<?>) candidate)) {
+        return candidateBoxUnBoxingMethod;
+      } else /* implied isUnboxingMethod && isConstructorForPrimitiveWrapper */ {
+        return candidate;
+      }
     }
 
-    private boolean isAutoBoxingMethod(Method method) {
+    private boolean isConstructorForPrimitiveWrapper(Constructor<?> result) {
+      return PRIMITIVE_WRAPPERS.containsValue(result.getDeclaringClass());
+    }
+
+    private boolean isBoxingMethod(Method method) {
       Class<?>[] parameters = method.getParameterTypes();
       return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
           && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
+    }
+
+    private boolean isUnboxingMethod(Method method) {
+      String methodName = method.getName();
+      String returnType = method.getReturnType().getSimpleName();
+      Class<?>[] parameters = method.getParameterTypes();
+
+      return method.getReturnType().isPrimitive() && parameters.length == 0
+      // booleanValue, byteValue, charValue, doubleValue, floatValue, intValue,
+      // longValue, shortValue
+          && methodName.startsWith(returnType) && methodName.endsWith("Value")
+          && (wrapPrimitives(method.getReturnType()).equals(method.getDeclaringClass())
+              || method.getDeclaringClass().equals(Number.class));
     }
 
     private Class<?> wrapPrimitives(Class<?> clazz) {
