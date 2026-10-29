@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Log instructional warning when `--add-opens` flags are not used.
+- Support method references boxing and unboxing values. 
 
 ## [0.7.0] - 2026-10-20
 ### Added
