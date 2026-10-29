@@ -293,28 +293,28 @@ class LambdaTest {
   }
 
   @Test
-  void shouldResolvePrimitiveReturnValue() {
+  void shouldResolveUnboxedReturnValue() {
     ToDoubleFunction<String> fn = Double::new; // this method returns Double, thus unboxing takes place
     assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
         .containsExactly(String.class);
   }
 
   @Test
-  void shouldResolvePrimitiveReturnValue2() {
+  void shouldResolveUnboxedReturnValue2() {
     ToDoubleFunction<String> fn = Double::valueOf; // this method returns Double, thus unboxing takes place
     assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
         .containsExactly(String.class);
   }
 
   @Test
-  void shouldResolvePrimitiveReturnValue3() {
+  void shouldResolveUnboxedReturnValue3() {
     ToDoubleFunction<Double> fn = Double::doubleValue;
     assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
         .containsExactly(Double.class);
   }
 
   @Test
-  void shouldResolvePrimitiveReturnValue4() {
+  void shouldResolveBoxedReturnValue() {
     DoubleFunction<Double> fn = Double::valueOf; // this method returns Double, thus boxing takes place
     assertThat(TypeResolver.resolveRawArguments(DoubleFunction.class, fn.getClass())) //
         .containsExactly(Double.class);
