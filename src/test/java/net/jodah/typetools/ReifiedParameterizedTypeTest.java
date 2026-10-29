@@ -1,7 +1,6 @@
 package net.jodah.typetools;
 
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -9,8 +8,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Test
-public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
+@TypeResolverCacheTest
+class ReifiedParameterizedTypeTest {
 
   static class EqualityTypes<T> {
     List<List<String>> nested;
@@ -28,12 +27,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     Comparable<String> nonRecursive;
   }
 
-  @Factory(dataProvider = "cacheDataProvider")
-  public ReifiedParameterizedTypeTest(boolean cacheEnabled) {
-    super(cacheEnabled);
-  }
-
-  public void shouldCompareReifiedNestedTypesStructurally() throws Exception {
+  @Test
+  void shouldCompareReifiedNestedTypesStructurally() throws Exception {
     Type declared = EqualityTypes.class.getDeclaredField("nested").getGenericType();
     Type first = TypeResolver.reify(declared);
     Type second = TypeResolver.reify(declared);
@@ -42,7 +37,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     assertThat(first).hasSameHashCodeAs(second);
   }
 
-  public void shouldCompareReifiedAndDeclaredTypesSymmetrically() throws Exception {
+  @Test
+  void shouldCompareReifiedAndDeclaredTypesSymmetrically() throws Exception {
     Type declared = EqualityTypes.class.getDeclaredField("nested").getGenericType();
     Type reified = TypeResolver.reify(declared);
 
@@ -51,7 +47,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     assertThat(reified).hasSameHashCodeAs(declared);
   }
 
-  public void shouldCompareResolvedArgumentsInsteadOfOriginalVariables() throws Exception {
+  @Test
+  void shouldCompareResolvedArgumentsInsteadOfOriginalVariables() throws Exception {
     Type generic = EqualityTypes.class.getDeclaredField("generic").getGenericType();
     Type strings = EqualityTypes.class.getDeclaredField("strings").getGenericType();
     Type integers = EqualityTypes.class.getDeclaredField("integers").getGenericType();
@@ -63,7 +60,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     assertThat(reified).isNotEqualTo(TypeResolver.reify(integers));
   }
 
-  public void shouldCompareIndependentRecursiveTypes() throws Exception {
+  @Test
+  void shouldCompareIndependentRecursiveTypes() throws Exception {
     Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
     ParameterizedType first = (ParameterizedType) TypeResolver.reify(declared);
     ParameterizedType second = (ParameterizedType) TypeResolver.reify(declared);
@@ -76,7 +74,8 @@ public class ReifiedParameterizedTypeTest extends AbstractTypeResolverTest {
     assertThat(first).hasSameHashCodeAs(second);
   }
 
-  public void shouldDistinguishRecursiveAndNonRecursiveArguments() throws Exception {
+  @Test
+  void shouldDistinguishRecursiveAndNonRecursiveArguments() throws Exception {
     Type declared = RecursiveEqualityTypes.class.getDeclaredField("recursive").getGenericType();
     ParameterizedType recursive = (ParameterizedType) TypeResolver.reify(declared);
     ParameterizedType nonRecursive = (ParameterizedType) RecursiveEqualityTypes.class.getDeclaredField("nonRecursive")

@@ -1,8 +1,7 @@
 package net.jodah.typetools;
 
 import net.jodah.typetools.TypeResolver.Unknown;
-import org.testng.annotations.Factory;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
 import java.io.Serializable;
@@ -21,18 +20,13 @@ import java.util.Set;
 import java.util.Vector;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Jonathan Halterman
  */
-@Test
-@SuppressWarnings("serial")
-public class TypeResolverTest extends AbstractTypeResolverTest {
-
-  @Factory(dataProvider = "cacheDataProvider")
-  public TypeResolverTest(boolean cacheEnabled) {
-    super(cacheEnabled);
-  }
+@TypeResolverCacheTest
+class TypeResolverTest {
 
   static class RepoImplA<A1, A2 extends Map<?, ?>> extends RepoImplB<A2, ArrayList<?>> {
   }
@@ -75,34 +69,40 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   static class SomeEntity extends Entity<Long> {
   }
 
-  public void shouldResolveClass() throws Exception {
+  @Test
+  void shouldResolveClass() throws Exception {
     Field field = Entity.class.getDeclaredField("id");
     assertThat(TypeResolver.resolveRawClass(field.getGenericType(), SomeEntity.class)).isEqualTo(Long.class);
   }
 
-  public void shouldResolveArgumentForGenericType() throws Exception {
+  @Test
+  void shouldResolveArgumentForGenericType() throws Exception {
     Method mutator = Entity.class.getDeclaredMethod("setId", List.class);
     assertThat(TypeResolver.resolveRawArgument(mutator.getGenericParameterTypes()[0], SomeEntity.class))
         .isEqualTo(Long.class);
   }
 
-  public void shouldResolveArgumentForList() {
+  @Test
+  void shouldResolveArgumentForList() {
     assertThat(TypeResolver.resolveRawArgument(List.class, SomeList.class)).isEqualTo(Integer.class);
   }
 
-  public void shouldResolveTypeForList() {
+  @Test
+  void shouldResolveTypeForList() {
     Type resolvedType = TypeResolver.reify(List.class, SomeList.class);
     assertThat(resolvedType).isInstanceOf(ParameterizedType.class);
     assertThat(((ParameterizedType) resolvedType).getActualTypeArguments()[0]).isEqualTo(Integer.class);
   }
 
-  public void shouldResolveArgumentsForBazFromFoo() {
+  @Test
+  void shouldResolveArgumentsForBazFromFoo() {
     Class<?>[] typeArguments = TypeResolver.resolveRawArguments(Baz.class, Foo.class);
     assertThat(typeArguments[0]).isEqualTo(HashSet.class);
     assertThat(typeArguments[1]).isEqualTo(ArrayList.class);
   }
 
-  public void shouldResolveParameterizedTypeForBazFromFoo() {
+  @Test
+  void shouldResolveParameterizedTypeForBazFromFoo() {
     Type type = TypeResolver.reify(Baz.class, Foo.class);
 
     // Now we walk the type hierarchy:
@@ -120,14 +120,16 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(secondTypeArgument.getActualTypeArguments()[0]).isEqualTo(Object.class);
   }
 
-  public void shouldResolveTypeVariable() {
+  @Test
+  void shouldResolveTypeVariable() {
     TypeVariable<Class<Baz>> typeVariable = Baz.class.getTypeParameters()[0];
     Type type = TypeResolver.reify(typeVariable, Bar.class);
     assertThat(type).isInstanceOf(ParameterizedType.class);
     assertThat(((ParameterizedType) type).getRawType()).isEqualTo(HashSet.class);
   }
 
-  public void shouldResolvePartialParameterizedTypeForBazFromBar() {
+  @Test
+  void shouldResolvePartialParameterizedTypeForBazFromBar() {
     Type type = TypeResolver.reify(Baz.class, Bar.class);
 
     assertThat(type).isInstanceOf(ParameterizedType.class);
@@ -144,7 +146,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(secondTypeArgument.getActualTypeArguments()[0]).isEqualTo(Object.class);
   }
 
-  public void shouldResolveArgumentsForIRepoFromRepoImplA() {
+  @Test
+  void shouldResolveArgumentsForIRepoFromRepoImplA() {
     Class<?>[] types = TypeResolver.resolveRawArguments(IRepo.class, RepoImplA.class);
     assertThat(types[0]).isEqualTo(Map.class);
     assertThat(types[1]).isEqualTo(ArrayList.class);
@@ -152,21 +155,24 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(types[3]).isEqualTo(HashSet.class);
   }
 
-  public void shouldResolveArgumentsForRepoImplCFromRepoImplA() {
+  @Test
+  void shouldResolveArgumentsForRepoImplCFromRepoImplA() {
     Class<?>[] types = TypeResolver.resolveRawArguments(RepoImplC.class, RepoImplA.class);
     assertThat(types[0]).isEqualTo(ArrayList.class);
     assertThat(types[1]).isEqualTo(HashSet.class);
     assertThat(types[2]).isEqualTo(Map.class);
   }
 
-  public void shouldResolveArgumentsForRepoImplCFromRepoImplB() {
+  @Test
+  void shouldResolveArgumentsForRepoImplCFromRepoImplB() {
     Class<?>[] types = TypeResolver.resolveRawArguments(RepoImplC.class, RepoImplB.class);
     assertThat(types[0]).isEqualTo(Unknown.class);
     assertThat(types[1]).isEqualTo(HashSet.class);
     assertThat(types[2]).isEqualTo(Unknown.class);
   }
 
-  public void shouldResolveArgumentsForIRepoFromRepoImplB() {
+  @Test
+  void shouldResolveArgumentsForIRepoFromRepoImplB() {
     Class<?>[] types = TypeResolver.resolveRawArguments(IRepo.class, RepoImplB.class);
     assertThat(types[0]).isEqualTo(Map.class);
     assertThat(types[1]).isEqualTo(List.class);
@@ -174,7 +180,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(types[3]).isEqualTo(HashSet.class);
   }
 
-  public void shouldResolveArgumentsForIRepoFromRepoImplC() {
+  @Test
+  void shouldResolveArgumentsForIRepoFromRepoImplC() {
     Class<?>[] types = TypeResolver.resolveRawArguments(IRepo.class, RepoImplC.class);
     assertThat(types[0]).isEqualTo(Unknown.class);
     assertThat(types[1]).isEqualTo(Unknown.class);
@@ -182,19 +189,22 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(types[3]).isEqualTo(Unknown.class);
   }
 
-  public void shouldResolveArgumentsForIIRepoFromRepoImplA() {
+  @Test
+  void shouldResolveArgumentsForIIRepoFromRepoImplA() {
     Class<?>[] types = TypeResolver.resolveRawArguments(IIRepo.class, RepoImplA.class);
     assertThat(types[0]).isEqualTo(Map.class);
     assertThat(types[1]).isEqualTo(Vector.class);
   }
 
-  public void shouldResolveArgumentsForRepoImplBFromRepoImplA() {
+  @Test
+  void shouldResolveArgumentsForRepoImplBFromRepoImplA() {
     Class<?>[] types = TypeResolver.resolveRawArguments(RepoImplB.class, RepoImplA.class);
     assertThat(types[0]).isEqualTo(Unknown.class);
     assertThat(types[1]).isEqualTo(ArrayList.class);
   }
 
-  public void shouldResolveArgumentsForSimpleType() {
+  @Test
+  void shouldResolveArgumentsForSimpleType() {
     Class<?>[] args = TypeResolver.resolveRawArguments(IIRepo.class, SimpleRepo.class);
     assertThat(args[0]).isEqualTo(String.class);
     assertThat(args[1]).isEqualTo(List.class);
@@ -226,35 +236,40 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     public abstract <T extends Number> T genericMethod();
   }
 
-  public void shouldResolveGenericClassTypeArray() throws Throwable {
+  @Test
+  void shouldResolveGenericClassTypeArray() throws Throwable {
     Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
 
     Class<?> arg = TypeResolver.resolveRawClass(arrayField, TypeArrayImpl.class);
     assertThat(arg).isEqualTo(String[].class);
   }
 
-  public void shouldReifyGenericArrayTypeWithInterface() throws Throwable {
+  @Test
+  void shouldReifyGenericArrayTypeWithInterface() throws Throwable {
     Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
 
     Type arg = TypeResolver.reify(arrayField, TypeArrayNonClassImpl.class);
     assertThat(arg).isEqualTo(Closeable[].class);
   }
 
-  public void shouldResolveRawTypeList() throws Throwable {
+  @Test
+  void shouldResolveRawTypeList() throws Throwable {
     Type listField = TypeListFixture.class.getDeclaredField("testList").getGenericType();
 
     Class<?> arg = TypeResolver.resolveRawClass(listField, TypeListImpl.class);
     assertThat(arg).isEqualTo(List.class);
   }
 
-  public void shouldReifyGenericArrayTypeWithClass() throws Throwable {
+  @Test
+  void shouldReifyGenericArrayTypeWithClass() throws Throwable {
     Type arrayField = TypeArrayFixture.class.getDeclaredField("test").getGenericType();
 
     Type arg = TypeResolver.reify(arrayField, TypeArrayImpl.class);
     assertThat(arg).isEqualTo(String[].class);
   }
 
-  public void shouldReifyList() throws Throwable {
+  @Test
+  void shouldReifyList() throws Throwable {
     Type listField = TypeListFixture.class.getDeclaredField("testList").getGenericType();
 
     Type arg = TypeResolver.reify(listField, TypeListImpl.class);
@@ -264,25 +279,29 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(parameterizedType.getActualTypeArguments()[0]).isEqualTo(String.class);
   }
 
-  public void shouldReifyTypeVariable() throws Throwable {
+  @Test
+  void shouldReifyTypeVariable() throws Throwable {
     Type plainField = TypeListFixture.class.getDeclaredField("testPlain").getGenericType();
 
     Type arg = TypeResolver.reify(plainField, TypeListImpl.class);
     assertThat(arg).isEqualTo(String.class);
   }
 
-  public void shouldReifyWildcardFromGenericMethod() throws Exception {
+  @Test
+  void shouldReifyWildcardFromGenericMethod() throws Exception {
     Type type = TypeResolver.reify( //
         GenericMethodHolder.class.getMethod("genericMethod").getGenericReturnType() //
     );
     assertThat(type).isEqualTo(Number.class);
   }
 
-  public void shouldReturnNullOnResolveArgumentsForNonParameterizedType() {
+  @Test
+  void shouldReturnNullOnResolveArgumentsForNonParameterizedType() {
     assertThat(TypeResolver.resolveRawArguments(Object.class, String.class)).isNull();
   }
 
-  public void shouldReturnUnknownOnResolveArgumentForNonParameterizedType() {
+  @Test
+  void shouldReturnUnknownOnResolveArgumentForNonParameterizedType() {
     assertThat(TypeResolver.resolveRawArgument(Object.class, String.class)).isEqualTo(Unknown.class);
   }
 
@@ -294,7 +313,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
 
   }
 
-  public void shouldReifyWildcardToUpperBound() throws Exception {
+  @Test
+  void shouldReifyWildcardToUpperBound() throws Exception {
     Type type = TypeResolver.reify( //
         WildcardWithBoundFixture.class.getMethod("getNumberList").getGenericReturnType(), //
         WildcardWithBoundFixture.class //
@@ -306,7 +326,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(parameterizedType.getActualTypeArguments()[0]).isEqualTo(Number.class);
   }
 
-  public void shouldReifyWildcardWithComplexUpperBound() throws Exception {
+  @Test
+  void shouldReifyWildcardWithComplexUpperBound() throws Exception {
     Type type = TypeResolver.reify( //
         WildcardWithBoundFixture.class.getMethod("collect").getGenericReturnType(), //
         WildcardWithBoundFixture.class //
@@ -355,7 +376,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
   static abstract class RecursiveLong<T extends List<Set<T>>> extends RecursiveLongBase<T> {
   }
 
-  public void shouldReifyRecursiveBound() {
+  @Test
+  void shouldReifyRecursiveBound() {
     Type result = TypeResolver.reify(EnumBound.class, SubEnumBound.class);
     assertThat(result).isInstanceOf(ParameterizedType.class);
     ParameterizedType parameterizedType = (ParameterizedType) result;
@@ -370,7 +392,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(parameterizedType).isNotEqualTo(parameterizedType2);
   }
 
-  public void shouldReifyEnumBound() throws NoSuchFieldException {
+  @Test
+  void shouldReifyEnumBound() throws NoSuchFieldException {
     Type result = TypeResolver.reify(SubEnumBound.class.getField("enumField").getGenericType(), SubEnumBound.class);
     assertThat(result).isInstanceOf(ParameterizedType.class);
     ParameterizedType parameterizedType = (ParameterizedType) result;
@@ -399,7 +422,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(types).containsExactly(same);
   }
 
-  public void shouldReifyMutuallyRecursiveBound() {
+  @Test
+  void shouldReifyMutuallyRecursiveBound() {
     Type result = TypeResolver.reify(MutuallyRecursiveBase.class, MutuallyRecursive.class);
     assertThat(result).isInstanceOf(ParameterizedType.class);
     ParameterizedType parent = (ParameterizedType) result;
@@ -417,7 +441,8 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(parameterizedType).isEqualTo(parameterizedType2);
   }
 
-  public void shouldReifyRecursiveOnSecondBound() {
+  @Test
+  void shouldReifyRecursiveOnSecondBound() {
     Type result = TypeResolver.reify(RecursiveOnSecondBase.class, RecursiveOnSecond.class);
     assertThat(result).isInstanceOf(ParameterizedType.class);
     ParameterizedType parameterizedType = (ParameterizedType) result;
@@ -430,29 +455,36 @@ public class TypeResolverTest extends AbstractTypeResolverTest {
     assertThat(parameterizedType.getActualTypeArguments()[1]).isEqualTo(parameterizedType);
   }
 
-  @Test(expectedExceptions = IllegalArgumentException.class)
-  public void shouldThrowOnResolveArgumentForTypeWithMultipleArguments() {
-    TypeResolver.resolveRawArgument(Map.class, new HashMap<String, String>() {
-    }.getClass());
+  @Test
+  void shouldThrowOnResolveArgumentForTypeWithMultipleArguments() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      TypeResolver.resolveRawArgument(Map.class, new HashMap<String, String>() {
+      }.getClass());
+    });
   }
 
-  @Test(expectedExceptions = UnsupportedOperationException.class)
-  public void shouldThrowOnReifyForUnknownImplementation() {
-    TypeResolver.reify(new Type() {
-      @Override
-      public String getTypeName() {
-        return "unknown";
-      }
-    }, Bar.class);
+  @Test
+  void shouldThrowOnReifyForUnknownImplementation() {
+    assertThrows(UnsupportedOperationException.class, () -> {
+      TypeResolver.reify(new Type() {
+        @Override
+        public String getTypeName() {
+          return "unknown";
+        }
+      }, Bar.class);
+    });
   }
 
-  @Test(expectedExceptions = UnsupportedOperationException.class)
-  public void shouldThrowOnReifyForNontrivialBounds() throws Exception {
-    Type toResolve = TypeListImpl.class.getMethod("testMethod", List.class).getGenericParameterTypes()[0];
-    TypeResolver.reify(toResolve, TypeListImpl.class);
+  @Test
+  void shouldThrowOnReifyForNontrivialBounds() {
+    assertThrows(UnsupportedOperationException.class, () -> {
+      Type toResolve = TypeListImpl.class.getMethod("testMethod", List.class).getGenericParameterTypes()[0];
+      TypeResolver.reify(toResolve, TypeListImpl.class);
+    });
   }
 
-  public void shouldResolveTypeParamFromAnonymousClass() {
+  @Test
+  void shouldResolveTypeParamFromAnonymousClass() {
     List<String> stringList = new ArrayList<String>() {
     };
     Class<?> stringType = TypeResolver.resolveRawArgument(List.class, stringList.getClass());
