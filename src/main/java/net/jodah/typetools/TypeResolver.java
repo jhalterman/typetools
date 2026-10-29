@@ -424,6 +424,10 @@ public final class TypeResolver {
           result.addReifiedTypeArgument(reified);
         }
       }
+      // Owners may contain type variables too, including bounds that refer back
+      // to this type. Reuse the partial results after filling its arguments.
+      if (parameterizedType.getOwnerType() != null)
+        result.setOwnerType(reify(parameterizedType.getOwnerType(), typeVariableMap, partial));
       return result;
     } else if (genericType instanceof GenericArrayType) {
       final GenericArrayType genericArrayType = (GenericArrayType) genericType;
