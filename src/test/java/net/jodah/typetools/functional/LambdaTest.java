@@ -14,9 +14,11 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.DoubleFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -274,6 +276,48 @@ class LambdaTest {
     FnSubclass<String, Integer> fn = Integer::new;
     assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
         .containsExactly(String.class, Integer.class);
+  }
+
+  @Test
+  void shouldResolveObjectClassMethodRef() {
+    Function<?, String> fn = Object::toString;
+    assertThat(TypeResolver.resolveRawArguments(Function.class, fn.getClass())) //
+        .containsExactly(Object.class, String.class);
+  }
+
+  @Test
+  void shouldResolveObjectClassConstructorRef() {
+    Supplier<?> fn = Object::new;
+    assertThat(TypeResolver.resolveRawArguments(Supplier.class, fn.getClass())) //
+        .containsExactly(Object.class);
+  }
+
+  @Test
+  void shouldResolveUnboxedReturnValue() {
+    ToDoubleFunction<String> fn = Double::new; // this method returns Double, thus unboxing takes place
+    assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
+        .containsExactly(String.class);
+  }
+
+  @Test
+  void shouldResolveUnboxedReturnValue2() {
+    ToDoubleFunction<String> fn = Double::valueOf; // this method returns Double, thus unboxing takes place
+    assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
+        .containsExactly(String.class);
+  }
+
+  @Test
+  void shouldResolveUnboxedReturnValue3() {
+    ToDoubleFunction<Double> fn = Double::doubleValue;
+    assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
+        .containsExactly(Double.class);
+  }
+
+  @Test
+  void shouldResolveBoxedReturnValue() {
+    DoubleFunction<Double> fn = Double::valueOf; // this method returns Double, thus boxing takes place
+    assertThat(TypeResolver.resolveRawArguments(DoubleFunction.class, fn.getClass())) //
+        .containsExactly(Double.class);
   }
 
   @Test
