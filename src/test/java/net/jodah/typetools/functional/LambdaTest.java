@@ -14,6 +14,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.DoubleFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -309,6 +310,13 @@ class LambdaTest {
   void shouldResolvePrimitiveReturnValue3() {
     ToDoubleFunction<Double> fn = Double::doubleValue;
     assertThat(TypeResolver.resolveRawArguments(ToDoubleFunction.class, fn.getClass())) //
+        .containsExactly(Double.class);
+  }
+
+  @Test
+  void shouldResolvePrimitiveReturnValue4() {
+    DoubleFunction<Double> fn = Double::valueOf; // this method returns Double, thus boxing takes place
+    assertThat(TypeResolver.resolveRawArguments(DoubleFunction.class, fn.getClass())) //
         .containsExactly(Double.class);
   }
 
