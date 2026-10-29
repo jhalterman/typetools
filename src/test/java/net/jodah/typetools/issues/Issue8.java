@@ -1,38 +1,37 @@
 package net.jodah.typetools.issues;
 
 import net.jodah.typetools.TypeResolver;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * https://github.com/jhalterman/typetools/issues/8
  */
-@Test
-public class Issue8 {
+class Issue8 {
+
   interface Foo<T1, T2> {
   }
 
   class Bar implements Foo<List<Integer>, List<String>> {
   }
 
-  public void test() {
+  @Test
+  void test() {
     Type typeArgs = TypeResolver.reify(Foo.class, Bar.class);
-    assertEquals(
-        typeArgs.toString(),
+    assertThat(typeArgs.toString()).isEqualTo(
         "net.jodah.typetools.issues.Issue8$Foo<java.util.List<java.lang.Integer>, java.util.List<java.lang.String>>");
-    assertTrue(typeArgs instanceof ParameterizedType);
+    assertThat(typeArgs).isInstanceOf(ParameterizedType.class);
     ParameterizedType par = (ParameterizedType) typeArgs;
-    assertEquals(par.getRawType(), Foo.class);
-    assertEquals(par.getActualTypeArguments().length, 2);
-    assertTrue(par.getActualTypeArguments()[0] instanceof ParameterizedType);
+    assertThat(par.getRawType()).isEqualTo(Foo.class);
+    assertThat(par.getActualTypeArguments().length).isEqualTo(2);
+    assertThat(par.getActualTypeArguments()[0]).isInstanceOf(ParameterizedType.class);
     ParameterizedType firstArg = (ParameterizedType) par.getActualTypeArguments()[0];
-    assertEquals(firstArg.getRawType(), List.class);
-    assertEquals(firstArg.getActualTypeArguments()[0], Integer.class);
+    assertThat(firstArg.getRawType()).isEqualTo(List.class);
+    assertThat(firstArg.getActualTypeArguments()[0]).isEqualTo(Integer.class);
   }
 }

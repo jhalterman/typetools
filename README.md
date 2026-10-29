@@ -1,10 +1,11 @@
 # TypeTools
-[![Build Status](https://travis-ci.org/jhalterman/typetools.svg)](https://travis-ci.org/jhalterman/typetools) 
+
+[![Build Status](https://github.com/jhalterman/typetools/actions/workflows/maven.yaml/badge.svg)](https://github.com/jhalterman/typetools/actions/workflows/maven.yaml)
 [![Maven Central](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&colorB=53C92E)](https://maven-badges.herokuapp.com/maven-central/net.jodah/typetools)
 [![License](http://img.shields.io/:license-apache-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
 [![JavaDoc](https://img.shields.io/maven-central/v/net.jodah/typetools.svg?maxAge=60&label=javadoc&color=blue)](https://jodah.net/typetools/javadoc/)
 
-A simple, zero-dependency library for working with types. Supports Java 8+ and Android.
+A simple, zero-dependency library for working with types. Supports Java 1.6+ and Android.
 
 ## Introduction
 
@@ -142,10 +143,33 @@ TypeResolver.disableCache();
 
 #### On Lambda Support
 
-Lambda type argument resolution is currently supported for:
+Lambda type argument resolution is currently supported out of the box for Eclipse Temurin and Azul Zulu 8 through 21. 
+Lambda support depends on the constant pool which is not available on Android.
 
-* Oracle JDK 8 up to 17
-* Open JDK 8 up to 17
+On Java 22+ you will receive the following warning: 
+
+```
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by net.jodah.typetools.TypeResolverUtil22
+WARNING: Please consider reporting this to the maintainers of class net.jodah.typetools.TypeResolverUtil22
+WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
+```
+
+This warning can be avoided by using these JVM flags:
+
+```
+--add-opens java.base/java.lang.reflect=ALL-UNNAMED
+--add-opens java.base/jdk.internal.access=ALL-UNNAMED
+--add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+```
+
+Or if you are using the module path:
+
+```
+--add-opens java.base/java.lang.reflect=net.jodah.typetools
+--add-opens java.base/jdk.internal.access=net.jodah.typetools
+--add-opens java.base/jdk.internal.reflect=net.jodah.typetools
+```
 
 #### On Unresolvable Lambda Type Arguments
 
@@ -154,7 +178,7 @@ When resolving type arguments with lambda expressions, only type parameters used
 ```java
 interface ExtraFunction<T, R, Z> extends Function<T, R>{}
 ExtraFunction<String, Integer, Long> strToInt = s -> Integer.valueOf(s);
-Class<?>[] typeArgs = TypeResolver.resolveRawArguments(ExtraFunction.class, strToInt.getClass());
+Class<?>[] typeArgs = TypeResolver.resolveRawArguments(Function.class, strToInt.getClass());
 
 assert typeArgs[0] == String.class;
 assert typeArgs[1] == Integer.class;

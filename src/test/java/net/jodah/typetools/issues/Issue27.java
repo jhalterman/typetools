@@ -1,24 +1,24 @@
 package net.jodah.typetools.issues;
 
-import static org.testng.Assert.assertEquals;
+import net.jodah.typetools.TypeResolver;
+import org.junit.jupiter.api.Test;
 
 import java.util.function.Function;
 
-import org.testng.annotations.Test;
-
-import net.jodah.typetools.TypeResolver;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * https://github.com/jhalterman/typetools/issues/27
  */
-@Test
-public class Issue27 {
-  public void test() throws Throwable {
+class Issue27 {
+
+  @Test
+  void test() {
     Function<String[], String> fn = (String[] strings) -> strings.toString();
 
     Class<?>[] args = TypeResolver.resolveRawArguments(Function.class, fn.getClass());
 
-    assertEquals(args[0], String[].class);
-    assertEquals(args[1], String.class);
+    assertThat(args[0]).isEqualTo(String[].class);
+    assertThat(args[1]).isEqualTo(String.class);
   }
 }

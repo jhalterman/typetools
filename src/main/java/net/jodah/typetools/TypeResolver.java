@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2021 the original author or authors.
+ * Copyright 2002-2017 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,8 @@
  */
 package net.jodah.typetools;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
-import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -31,18 +28,11 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
-import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.WeakHashMap;
-
-import sun.misc.Unsafe;
 
 /**
  * Enhanced type resolution utilities.
@@ -51,121 +41,13 @@ import sun.misc.Unsafe;
  */
 @SuppressWarnings("restriction")
 public final class TypeResolver {
+
   /** Cache of type variable/argument pairs */
   private static final Map<Class<?>, Reference<Map<TypeVariable<?>, Type>>> TYPE_VARIABLE_CACHE = Collections
       .synchronizedMap(new WeakHashMap<Class<?>, Reference<Map<TypeVariable<?>, Type>>>());
   private static volatile boolean CACHE_ENABLED = true;
-  private static boolean RESOLVES_LAMBDAS;
-  private static Object JAVA_LANG_ACCESS;
-  private static Method GET_CONSTANT_POOL;
-  private static Method GET_CONSTANT_POOL_SIZE;
-  private static Method GET_CONSTANT_POOL_METHOD_AT;
-  private static final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
-  private static final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS_MAP;
-  private static final Set<Class<?>> PRIMITIVE_WRAPPERS;
-  private static final Double JAVA_VERSION;
-
-  static {
-    JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
-
-    try {
-      final Unsafe unsafe = AccessController.doPrivileged(new PrivilegedExceptionAction<Unsafe>() {
-        @Override
-        public Unsafe run() throws Exception {
-          final Field f = Unsafe.class.getDeclaredField("theUnsafe");
-          f.setAccessible(true);
-
-          return (Unsafe) f.get(null);
-        }
-      });
-
-      Class<?> sharedSecretsClass;
-      AccessMaker accessSetter;
-      if (JAVA_VERSION < 9) {
-        sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-        // Java 8 and lower can simply call setAccessible
-        accessSetter = new AccessMaker() {
-          @Override
-          public void makeAccessible(AccessibleObject accessibleObject) {
-            accessibleObject.setAccessible(true);
-          }
-        };
-      } else if (JAVA_VERSION < 12) {
-          try {
-            sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-          } catch (ClassNotFoundException e) {
-            // In Oracle JDK 11.0.6, SharedSecrets was moved from jdk.internal.misc to jdk.internal.access.
-            sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          }
-          // access control got strengthed in Java 9, but can be circumvented with Unsafe.
-          Field overrideField = AccessibleObject.class.getDeclaredField("override");
-          final long overrideFieldOffset = unsafe.objectFieldOffset(overrideField);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject accessibleObject) {
-              unsafe.putBoolean(accessibleObject, overrideFieldOffset, true);
-            }
-        };
-      } else {
-          sharedSecretsClass = Class.forName("jdk.internal.access.SharedSecrets");
-          // In Java 12, AccessibleObject.override was added to the reflection blacklist.
-          // Access checking can still be circumvented by using the Unsafe technique to get the implementation lookup from MethodHandles.
-          Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-          long implLookupFieldOffset = unsafe.staticFieldOffset(implLookupField);
-          Object lookupStaticFieldBase = unsafe.staticFieldBase(implLookupField);
-          MethodHandles.Lookup implLookup = (MethodHandles.Lookup) unsafe.getObject(lookupStaticFieldBase, implLookupFieldOffset);
-          final MethodHandle overrideSetter = implLookup.findSetter(AccessibleObject.class, "override", boolean.class);
-          accessSetter = new AccessMaker() {
-            @Override
-            public void makeAccessible(AccessibleObject object) throws Throwable {
-              overrideSetter.invokeWithArguments(new Object[] {object, true});
-            }
-        };
-      }
-      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
-      accessSetter.makeAccessible(javaLangAccessGetter);
-      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
-      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
-
-      String constantPoolName = JAVA_VERSION < 9 ? "sun.reflect.ConstantPool" : "jdk.internal.reflect.ConstantPool";
-      Class<?> constantPoolClass = Class.forName(constantPoolName);
-      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
-      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
-
-      // setting the methods as accessible
-      accessSetter.makeAccessible(GET_CONSTANT_POOL);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
-      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
-
-      // additional checks - make sure we get a result when invoking the Class::getConstantPool and
-      // ConstantPool::getSize on a class
-      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
-      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-
-      for (Method method : Object.class.getDeclaredMethods())
-        OBJECT_METHODS.put(method.getName(), method);
-
-      RESOLVES_LAMBDAS = true;
-    } catch (Throwable ignore) {
-    }
-
-    Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
-    types.put(boolean.class, Boolean.class);
-    types.put(byte.class, Byte.class);
-    types.put(char.class, Character.class);
-    types.put(double.class, Double.class);
-    types.put(float.class, Float.class);
-    types.put(int.class, Integer.class);
-    types.put(long.class, Long.class);
-    types.put(short.class, Short.class);
-    types.put(void.class, Void.class);
-    PRIMITIVE_WRAPPERS_MAP = Collections.unmodifiableMap(types);
-    PRIMITIVE_WRAPPERS = Collections.unmodifiableSet(new HashSet<>(types.values()));
-  }
-
-  private interface AccessMaker {
-    void makeAccessible(AccessibleObject object) throws Throwable;
-  }
+  private static final Object LAMBDA_ARGUMENT_RESOLVER_MONITOR = new Object();
+  private static volatile LambdaArgumentResolver LAMBDA_ARGUMENT_RESOLVER;
 
   /** An unknown type. */
   public static final class Unknown {
@@ -174,6 +56,7 @@ public final class TypeResolver {
   }
 
   private TypeResolver() {
+    /* no-op */
   }
 
   /**
@@ -192,27 +75,36 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code type} using type variable information from the
-   * {@code subType}. If no arguments can be resolved then {@code Unknown.class} is returned.
+   * Returns the raw class representing the argument for the {@code type} using
+   * type variable information from the {@code subType}. If no arguments can be
+   * resolved then {@code Unknown.class} is returned.
    *
    * @param type to resolve argument for
    * @param subType to extract type variable information from
-   * @return argument for {@code type} else {@link Unknown}.class if no type arguments are declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code type}
+   * @return argument for {@code type} else {@link Unknown}.class if no type
+   *         arguments are declared
+   * @throws IllegalArgumentException if more or less than one argument is
+   *         resolved for the {@code type}
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Class<?> resolveRawArgument(Class<T> type, Class<S> subType) {
     return resolveRawArgument(resolveGenericType(type, subType), subType);
   }
 
   /**
-   * Returns the raw class representing the argument for the {@code genericType} using type variable information from
-   * the {@code subType}. If {@code genericType} is an instance of class, then {@code genericType} is returned. If no
-   * arguments can be resolved then {@code Unknown.class} is returned.
+   * Returns the raw class representing the argument for the {@code genericType}
+   * using type variable information from the {@code subType}. If
+   * {@code genericType} is an instance of class, then {@code genericType} is
+   * returned. If no arguments can be resolved then {@code Unknown.class} is
+   * returned.
    *
    * @param genericType to resolve argument for
    * @param subType to extract type variable information from
-   * @return argument for {@code genericType} else {@link Unknown}.class if no type arguments are declared
-   * @throws IllegalArgumentException if more or less than one argument is resolved for the {@code genericType}
+   * @return argument for {@code genericType} else {@link Unknown}.class if no
+   *         type arguments are declared
+   * @throws IllegalArgumentException if more or less than one argument is
+   *         resolved for the {@code genericType}
    */
   public static Class<?> resolveRawArgument(Type genericType, Class<?> subType) {
     Class<?>[] arguments = resolveRawArguments(genericType, subType);
@@ -227,50 +119,65 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code type} using type variable information from
-   * the {@code subType}. Arguments for {@code type} that cannot be resolved are returned as {@code Unknown.class}. If
-   * no arguments can be resolved then {@code null} is returned.
+   * Returns an array of raw classes representing arguments for the {@code type}
+   * using type variable information from the {@code subType}. Arguments for
+   * {@code type} that cannot be resolved are returned as {@code Unknown.class}.
+   * If no arguments can be resolved then {@code null} is returned.
    *
    * @param type to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code type} else {@code null} if no type arguments are
-   *         declared
+   * @return array of raw classes representing arguments for the {@code type} else
+   *         {@code null} if no type arguments are declared
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Class<?>[] resolveRawArguments(Class<T> type, Class<S> subType) {
     return resolveRawArguments(resolveGenericType(type, subType), subType);
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
-   * by using the type information from given {@code context}.
-   * A convenience method which largely works the same as {@link #reify(Type, Class)}, but first resolves the
-   * generic type of {@code type}.
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible), by using the type information from given
+   * {@code context}. A convenience method which largely works the same as
+   * {@link #reify(Type, Class)}, but first resolves the generic type of
+   * {@code type}.
    *
    * @param type the class whose generic type to traverse
-   * @param context the class that serves as starting point to resolve replacements of type variables
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @param context the class that serves as starting point to resolve
+   *        replacements of type variables
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
+   * @param <T> the type to resolve type variable for
+   * @param <S> the subtype that binds the type variable
    */
   public static <T, S extends T> Type reify(Class<T> type, Class<S> context) {
     return reify(resolveGenericType(type, context), getTypeVariableMap(context, null));
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible),
-   * by using the type information from given {@code context}.
-   *
-   * Generic types used as input to this method are commonly obtained using reflection, e.g. via
-   * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
-   *
-   * Example:
-   * <blockquote><pre>{@code
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible), by using the type information from given
+   * {@code context}.
+   * <p>
+   * Generic types used as input to this method are commonly obtained using
+   * reflection, e.g. via {@link Field#getGenericType()},
+   * {@link Method#getGenericReturnType()},
+   * {@link Method#getGenericParameterTypes()}.
+   * <p>
+   * Example: <blockquote>
+   * 
+   * <pre>{@code
    *   class A<T> {
    *     public T something;
    *     public Optional<List<T>> compute() { ... }
@@ -279,84 +186,103 @@ public final class TypeResolver {
    *   class B extends A<Number> {
    *     public <? extends Collection<List<?>>> collect() { ... }
    *   }
-   * }</pre></blockquote>
-   *
-   * Reifying the generic return type of the method {@code compute} with {@code B.class} as {@code context} will
-   * yield the parameterized type {@code Optional<List<Number>>}. Note that not the raw type ({@link java.util.Optional}
-   * is returned, but the input type is reified recursively.
-   * Reifying the generic type of the field {@code something} with {@code B.class} as {@code context} will yield
-   * {@code Number.class}.
-   *
-   * Note that type variables with no explicit upper bound are reified to {@link Object}, and {@code Unknown.class} is
-   * never returned.
+   * }</pre>
+   * 
+   * </blockquote> Reifying the generic return type of the method {@code compute}
+   * with {@code B.class} as {@code context} will yield the parameterized type
+   * {@code Optional<List<Number>>}. Note that not the raw type
+   * ({@link java.util.Optional} is returned, but the input type is reified
+   * recursively. Reifying the generic type of the field {@code something} with
+   * {@code B.class} as {@code context} will yield {@code Number.class}.
+   * <p>
+   * Note that type variables with no explicit upper bound are reified to
+   * {@link Object}, and {@code Unknown.class} is never returned.
    *
    * @param type the generic type to traverse
-   * @param context the class that serves as starting point to resolve replacements of type variables
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @param context the class that serves as starting point to resolve
+   *        replacements of type variables
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
    */
   public static Type reify(Type type, Class<?> context) {
     return reify(type, getTypeVariableMap(context, null));
   }
 
   /**
-   * Traverses a generic type and replaces all type variables and wildcard types with concrete types (if possible).
-   * A convenience wrapper around {@link #reify(Type, Class)}, for when no context is needed/available.
-   *
-   * Generic types used as input to this method are commonly obtained using reflection, e.g. via
-   * {@link Field#getGenericType()}, {@link Method#getGenericReturnType()}, {@link Method#getGenericParameterTypes()}.
-   *
-   * Example:
-   * <blockquote><pre>{@code
+   * Traverses a generic type and replaces all type variables and wildcard types
+   * with concrete types (if possible). A convenience wrapper around
+   * {@link #reify(Type, Class)}, for when no context is needed/available.
+   * <p>
+   * Generic types used as input to this method are commonly obtained using
+   * reflection, e.g. via {@link Field#getGenericType()},
+   * {@link Method#getGenericReturnType()},
+   * {@link Method#getGenericParameterTypes()}.
+   * <p>
+   * Example: <blockquote>
+   * 
+   * <pre>{@code
    *   class X {
    *     public List<? extends Collection<List<? extends Number>>> collectList() { ... }
    *     public Set<?> collectSet() { ... }
    *   }
-   * }</pre></blockquote>
-   *
-   * Reifying the generic return type of the method {@code collectList} will yield the parameterized type
-   * {@code List<Collection<List<Number>>>}.
-   * Reifying the generic return type of the method {@code collectSet} will yield the parameterized type
-   * {@code Set<Object>}, since there is no explicit upper bound for the wildcard type given.
+   * }</pre>
+   * 
+   * </blockquote> Reifying the generic return type of the method
+   * {@code collectList} will yield the parameterized type
+   * {@code List<Collection<List<Number>>>}. Reifying the generic return type of
+   * the method {@code collectSet} will yield the parameterized type
+   * {@code Set<Object>}, since there is no explicit upper bound for the wildcard
+   * type given.
    *
    * @param type the generic type to traverse
-   * @return a type that is structurally the same as {@code type}, except that type variables and wildcard types
-   *         have been replaced with concrete types
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is not an instance of one of
-   *         the following types: {@link Class}, {@link TypeVariable}, {@link WildcardType}, {@link ParameterizedType},
-   *         {@link GenericArrayType}.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link WildcardType} that
-   *         does not have exactly one upper bound, or does not have no lower bounds.
-   * @throws UnsupportedOperationException if {@code type} (or a type that it references) is a {@link GenericArrayType}
-   *         whose generic component type cannot be reified to an instance of {@link Class}.
+   * @return a type that is structurally the same as {@code type}, except that
+   *         type variables and wildcard types have been replaced with concrete
+   *         types
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is not an instance of one of the following types:
+   *         {@link Class}, {@link TypeVariable}, {@link WildcardType},
+   *         {@link ParameterizedType}, {@link GenericArrayType}.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link WildcardType} that does not have exactly one
+   *         upper bound, or does not have no lower bounds.
+   * @throws UnsupportedOperationException if {@code type} (or a type that it
+   *         references) is a {@link GenericArrayType} whose generic component
+   *         type cannot be reified to an instance of {@link Class}.
    */
   public static Type reify(Type type) {
     return reify(type, new HashMap<TypeVariable<?>, Type>(0));
   }
 
   /**
-   * Returns an array of raw classes representing arguments for the {@code genericType} using type variable information
-   * from the {@code subType}. Arguments for {@code genericType} that cannot be resolved are returned as
-   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is returned.
+   * Returns an array of raw classes representing arguments for the
+   * {@code genericType} using type variable information from the {@code subType}.
+   * Arguments for {@code genericType} that cannot be resolved are returned as
+   * {@code Unknown.class}. If no arguments can be resolved then {@code null} is
+   * returned.
    *
    * @param genericType to resolve arguments for
    * @param subType to extract type variable information from
-   * @return array of raw classes representing arguments for the {@code genericType} else {@code null} if no type
-   *         arguments are declared
+   * @return array of raw classes representing arguments for the
+   *         {@code genericType} else {@code null} if no type arguments are
+   *         declared
    */
   public static Class<?>[] resolveRawArguments(Type genericType, Class<?> subType) {
     Class<?>[] result = null;
     Class<?> functionalInterface = null;
 
     // Handle lambdas
-    if (RESOLVES_LAMBDAS && subType.isSynthetic()) {
+    if (subType.isSynthetic()) {
       Class<?> fi = genericType instanceof ParameterizedType
           && ((ParameterizedType) genericType).getRawType() instanceof Class
               ? (Class<?>) ((ParameterizedType) genericType).getRawType()
@@ -385,8 +311,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Returns the generic {@code type} using type variable information from the {@code subType} else {@code null} if the
-   * generic type cannot be resolved.
+   * Returns the generic {@code type} using type variable information from the
+   * {@code subType} else {@code null} if the generic type cannot be resolved.
    *
    * @param type to resolve generic type for
    * @param subType to extract type variable information from
@@ -419,12 +345,14 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the raw class for the {@code genericType}, using the type variable information from the {@code subType}
-   * else {@link Unknown} if the raw class cannot be resolved.
+   * Resolves the raw class for the {@code genericType}, using the type variable
+   * information from the {@code subType} else {@link Unknown} if the raw class
+   * cannot be resolved.
    *
    * @param genericType to resolve raw class for
    * @param subType to extract type variable information from
-   * @return raw class for the {@code genericType} else {@link Unknown} if it cannot be resolved
+   * @return raw class for the {@code genericType} else {@link Unknown} if it
+   *         cannot be resolved
    */
   public static Class<?> resolveRawClass(Type genericType, Class<?> subType) {
     return resolveRawClass(genericType, subType, null);
@@ -450,7 +378,8 @@ public final class TypeResolver {
   }
 
   private static Type reify(final Type genericType, final Map<TypeVariable<?>, Type> typeVariableTypeMap) {
-    // Check for terminal cases to avoid allocating HashMap and trivial call.
+    // Check for terminal cases to avoid allocating HashMap and trivial
+    // call.
     if (genericType == null)
       return null;
     else if (genericType instanceof Class<?>)
@@ -460,13 +389,15 @@ public final class TypeResolver {
   }
 
   /**
-   * Works like {@link #resolveRawClass(Type, Class, Class)} but does not stop at raw classes. Instead, traverses
-   * referenced types.
+   * Works like {@link #resolveRawClass(Type, Class, Class)} but does not stop at
+   * raw classes. Instead, traverses referenced types.
    *
-   * @param partial contains a mapping of generic types to reified types. A value of {@code null} inside a
-   *        {@link ReifiedParameterizedType} instance means that this type is currently being reified.
+   * @param partial contains a mapping of generic types to reified types. A value
+   *        of {@code null} inside a {@link ReifiedParameterizedType} instance
+   *        means that this type is currently being reified.
    */
-  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap, Map<ParameterizedType, ReifiedParameterizedType> partial) {
+  private static Type reify(Type genericType, final Map<TypeVariable<?>, Type> typeVariableMap,
+      Map<ParameterizedType, ReifiedParameterizedType> partial) {
     // Terminal case.
     if (genericType instanceof Class<?>)
       return genericType;
@@ -474,18 +405,20 @@ public final class TypeResolver {
     // Recursive cases.
     if (genericType instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) genericType;
-      // Self-referential type needs special attention. Otherwise we might accidentally overflow the stack.
+      // Self-referential type needs special attention. Otherwise we might
+      // accidentally overflow the stack.
       if (partial.containsKey(parameterizedType)) {
         ReifiedParameterizedType res = partial.get(genericType);
         res.addReifiedTypeArgument(res);
         return res;
       }
-      final Type[] genericTypeArguments =  parameterizedType.getActualTypeArguments();
+      final Type[] genericTypeArguments = parameterizedType.getActualTypeArguments();
       final ReifiedParameterizedType result = new ReifiedParameterizedType(parameterizedType);
       partial.put(parameterizedType, result);
       for (Type genericTypeArgument : genericTypeArguments) {
         Type reified = reify(genericTypeArgument, typeVariableMap, partial);
-        // Self-references are added as soon as they are detected, see above.
+        // Self-references are added as soon as they are detected, see
+        // above.
         // In this case, skip adding.
         if (reified != result) {
           result.addReifiedTypeArgument(reified);
@@ -503,17 +436,19 @@ public final class TypeResolver {
       if (reifiedComponentType instanceof Class<?>)
         return Array.newInstance((Class<?>) reifiedComponentType, 0).getClass();
 
-      throw new UnsupportedOperationException(
-          "Attempted to reify generic array type, whose generic component type " +
-          "could not be reified to some Class<?>. Handling for this case is not implemented");
+      throw new UnsupportedOperationException("Attempted to reify generic array type, whose generic component type "
+          + "could not be reified to some Class<?>. Handling for this case is not implemented");
     } else if (genericType instanceof TypeVariable<?>) {
       final TypeVariable<?> typeVariable = (TypeVariable<?>) genericType;
       final Type mapping = typeVariableMap.get(typeVariable);
       if (mapping != null)
         return reify(mapping, typeVariableMap, partial);
-      // NOTE: According to https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
-      // if there are multiple upper bounds where one bound is a class, then this must be the
-      // leftmost/first bound. Therefore we blindly take this one, hoping it is the most relevant.
+      // NOTE: According to
+      // https://docs.oracle.com/javase/tutorial/java/generics/bounded.html
+      // if there are multiple upper bounds where one bound is a class,
+      // then this must be the
+      // leftmost/first bound. Therefore we blindly take this one, hoping
+      // it is the most relevant.
       // Hibernate does the same when erasing types, see also
       // https://github.com/hibernate/hibernate-validator/blob/6.0/engine/src/main/java/org/hibernate/validator/internal/util/TypeHelper.java#L181-L186
       return reify(typeVariable.getBounds()[0], typeVariableMap, partial);
@@ -524,15 +459,13 @@ public final class TypeResolver {
       if (upperBounds.length == 1 && lowerBounds.length == 0)
         return reify(upperBounds[0], typeVariableMap, partial);
 
-      throw new UnsupportedOperationException(
-          "Attempted to reify wildcard type with name '" + wildcardType.getTypeName() +
-          "' which has " + upperBounds.length + " upper bounds and " + lowerBounds.length +
-          " lower bounds. Reification of wildcard types is only supported for" +
-          " the trivial case of exactly 1 upper bound and 0 lower bounds.");
+      throw new UnsupportedOperationException("Attempted to reify wildcard type with name '"
+          + wildcardType.getTypeName() + "' which has " + upperBounds.length + " upper bounds and " + lowerBounds.length
+          + " lower bounds. Reification of wildcard types is only supported for"
+          + " the trivial case of exactly 1 upper bound and 0 lower bounds.");
     }
-    throw new UnsupportedOperationException(
-        "Reification of type with name '" + genericType.getTypeName() + "' and " +
-        "class name '" + genericType.getClass().getName() + "' is not implemented.");
+    throw new UnsupportedOperationException("Reification of type with name '" + genericType.getTypeName() + "' and "
+        + "class name '" + genericType.getClass().getName() + "' is not implemented.");
   }
 
   private static Map<TypeVariable<?>, Type> getTypeVariableMap(final Class<?> targetType,
@@ -544,8 +477,9 @@ public final class TypeResolver {
       map = new HashMap<TypeVariable<?>, Type>();
 
       // Populate lambdas
-      if (functionalInterface != null)
-        populateLambdaArgs(functionalInterface, targetType, map);
+      if (functionalInterface != null) {
+        getLambdaArgumentResolver().populateLambdaArgs(functionalInterface, targetType, map);
+      }
 
       // Populate interfaces
       populateSuperTypeArgs(targetType.getGenericInterfaces(), map, functionalInterface != null);
@@ -579,8 +513,24 @@ public final class TypeResolver {
     return map;
   }
 
+  private static LambdaArgumentResolver getLambdaArgumentResolver() {
+    if (LAMBDA_ARGUMENT_RESOLVER == null) {
+      synchronized (LAMBDA_ARGUMENT_RESOLVER_MONITOR) {
+        if (LAMBDA_ARGUMENT_RESOLVER == null) {
+          try {
+            LAMBDA_ARGUMENT_RESOLVER = new DefaultLambdaArgumentResolver();
+          } catch (Throwable ignored) {
+            LAMBDA_ARGUMENT_RESOLVER = new NoopLambdaArgumentResolver();
+          }
+        }
+      }
+    }
+    return LAMBDA_ARGUMENT_RESOLVER;
+  }
+
   /**
-   * Populates the {@code map} with with variable/argument pairs for the given {@code types}.
+   * Populates the {@code map} with variable/argument pairs for the given
+   * {@code types}.
    */
   private static void populateSuperTypeArgs(final Type[] types, final Map<TypeVariable<?>, Type> map,
       boolean depthFirst) {
@@ -601,7 +551,8 @@ public final class TypeResolver {
   }
 
   /**
-   * Populates the {@code map} with variable/argument pairs for the given {@code type}.
+   * Populates the {@code map} with variable/argument pairs for the given
+   * {@code type}.
    */
   private static void populateTypeArgs(ParameterizedType type, Map<TypeVariable<?>, Type> map, boolean depthFirst) {
     if (type.getRawType() instanceof Class) {
@@ -644,7 +595,12 @@ public final class TypeResolver {
   }
 
   /**
-   * Resolves the first bound for the {@code typeVariable}, returning {@code Unknown.class} if none can be resolved.
+   * Resolves the first bound for the {@code typeVariable}, returning
+   * {@code Unknown.class} if none can be resolved.
+   *
+   * @param typeVariable to resolve the first bound for.
+   * @return the first bound for the {@code typeVariable} or {@code Unknown.class}
+   *         if none can be resolved
    */
   public static Type resolveBound(TypeVariable<?> typeVariable) {
     Type[] bounds = typeVariable.getBounds();
@@ -658,12 +614,99 @@ public final class TypeResolver {
     return bound == Object.class ? Unknown.class : bound;
   }
 
-  /**
-   * Populates the {@code map} with variable/argument pairs for the {@code functionalInterface}.
-   */
-  private static void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
-      Map<TypeVariable<?>, Type> map) {
-    if (RESOLVES_LAMBDAS) {
+  private interface LambdaArgumentResolver {
+
+    void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType, Map<TypeVariable<?>, Type> map);
+  }
+
+  private static final class NoopLambdaArgumentResolver implements LambdaArgumentResolver {
+
+    @Override
+    public void populateLambdaArgs(Class<?> functionalInterface, Class<?> lambdaType, Map<TypeVariable<?>, Type> map) {
+      /* no-op */
+    }
+  }
+
+  private static final class DefaultLambdaArgumentResolver implements LambdaArgumentResolver {
+
+    private static final Double JAVA_VERSION;
+
+    static {
+      JAVA_VERSION = Double.parseDouble(System.getProperty("java.specification.version", "0"));
+    }
+
+    private final Object JAVA_LANG_ACCESS;
+    private final Method GET_CONSTANT_POOL;
+    private final Method GET_CONSTANT_POOL_SIZE;
+    private final Method GET_CONSTANT_POOL_METHOD_AT;
+    private final Map<String, Method> OBJECT_METHODS = new HashMap<String, Method>();
+    private final Map<Class<?>, Class<?>> PRIMITIVE_WRAPPERS;
+
+    DefaultLambdaArgumentResolver() throws Throwable {
+      TypeResolverUtil typeResolverUtil = createTypeResolverUtil();
+      AccessMaker accessSetter = typeResolverUtil.createAccessMaker();
+
+      Class<?> sharedSecretsClass = typeResolverUtil.getSharedSecretsClass();
+      Method javaLangAccessGetter = sharedSecretsClass.getMethod("getJavaLangAccess");
+      accessSetter.makeAccessible(javaLangAccessGetter);
+      JAVA_LANG_ACCESS = javaLangAccessGetter.invoke(null);
+      GET_CONSTANT_POOL = JAVA_LANG_ACCESS.getClass().getMethod("getConstantPool", Class.class);
+
+      Class<?> constantPoolClass = typeResolverUtil.getConstantPoolClass();
+      GET_CONSTANT_POOL_SIZE = constantPoolClass.getDeclaredMethod("getSize");
+      GET_CONSTANT_POOL_METHOD_AT = constantPoolClass.getDeclaredMethod("getMethodAt", int.class);
+
+      // setting the methods as accessible
+      accessSetter.makeAccessible(GET_CONSTANT_POOL);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_SIZE);
+      accessSetter.makeAccessible(GET_CONSTANT_POOL_METHOD_AT);
+
+      // additional checks - make sure we get a result when invoking the
+      // Class::getConstantPool and
+      // ConstantPool::getSize on a class
+      Object constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, Object.class);
+      GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+
+      for (Method method : Object.class.getDeclaredMethods())
+        OBJECT_METHODS.put(method.getName(), method);
+
+      Map<Class<?>, Class<?>> types = new HashMap<Class<?>, Class<?>>();
+      types.put(boolean.class, Boolean.class);
+      types.put(byte.class, Byte.class);
+      types.put(char.class, Character.class);
+      types.put(double.class, Double.class);
+      types.put(float.class, Float.class);
+      types.put(int.class, Integer.class);
+      types.put(long.class, Long.class);
+      types.put(short.class, Short.class);
+      types.put(void.class, Void.class);
+      PRIMITIVE_WRAPPERS = Collections.unmodifiableMap(types);
+    }
+
+    private static TypeResolverUtil createTypeResolverUtil()
+        throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+      String className;
+      // Poor-mans multi-release jar.
+      if (JAVA_VERSION >= 22) {
+        className = "net.jodah.typetools.TypeResolverUtil22";
+      } else if (JAVA_VERSION >= 12) {
+        className = "net.jodah.typetools.TypeResolverUtil12";
+      } else if (JAVA_VERSION >= 9) {
+        className = "net.jodah.typetools.TypeResolverUtil9";
+      } else {
+        className = "net.jodah.typetools.TypeResolverUtil8";
+      }
+      // Use reflection to avoid creating a circular dependency
+      return (TypeResolverUtil) Class.forName(className).newInstance();
+    }
+
+    /**
+     * Populates the {@code map} with variable/argument pairs for the
+     * {@code functionalInterface}.
+     */
+    @Override
+    public void populateLambdaArgs(Class<?> functionalInterface, final Class<?> lambdaType,
+        Map<TypeVariable<?>, Type> map) {
       // Find SAM
       for (Method m : functionalInterface.getMethods()) {
         if (!isDefaultMethod(m) && !Modifier.isStatic(m.getModifiers()) && !m.isBridge()) {
@@ -692,7 +735,8 @@ public final class TypeResolver {
           Class<?>[] arguments = member instanceof Method ? ((Method) member).getParameterTypes()
               : ((Constructor<?>) member).getParameterTypes();
 
-          // Populate object type from arbitrary object method reference
+          // Populate object type from arbitrary object method
+          // reference
           int paramOffset = 0;
           if (paramTypeVars.length > 0 && paramTypeVars[0] instanceof TypeVariable
               && paramTypeVars.length == arguments.length + 1) {
@@ -701,7 +745,8 @@ public final class TypeResolver {
             paramOffset = 1;
           }
 
-          // Handle additional arguments that are captured from the lambda's enclosing scope
+          // Handle additional arguments that are captured from the
+          // lambda's enclosing scope
           int argOffset = 0;
           if (paramTypeVars.length < arguments.length) {
             argOffset = arguments.length - paramTypeVars.length;
@@ -717,138 +762,64 @@ public final class TypeResolver {
         }
       }
     }
-  }
 
-  private static boolean isDefaultMethod(Method m) {
-    return JAVA_VERSION >= 1.8 && m.isDefault();
-  }
+    private static boolean isDefaultMethod(Method m) {
+      return JAVA_VERSION >= 1.8 && m.isDefault();
+    }
 
-  private static Member getMemberRef(Class<?> type) {
-    Member[] constantPoolMethods = extractConstantPoolMethods(type);
-    //skip jacoco synthetic methods
-    int start = constantPoolMethods.length;
-    if (isInstrumentedByJacoco(type)) {
-      for (int i = constantPoolMethods.length - 1; i >= 0; i--) {
-        if (constantPoolMethods[i].getName().startsWith("$jacoco")) {
-          start = i;
-        }
+    private Member getMemberRef(Class<?> type) {
+      Object constantPool;
+      try {
+        constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
+      } catch (Exception ignore) {
+        return null;
+      }
+
+      Member result = null;
+      for (int i = getConstantPoolSize(constantPool) - 1; i >= 0; i--) {
+        Member member = getConstantPoolMethodAt(constantPool, i);
+        // Skip SerializedLambda constructors and members of the "type"
+        // class
+        if (member == null
+            || (member instanceof Constructor
+                && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
+            || member.getDeclaringClass().isAssignableFrom(type))
+          continue;
+
+        result = member;
+
+        // Return if not valueOf method
+        if (!(member instanceof Method) || !isAutoBoxingMethod((Method) member))
+          break;
+      }
+
+      return result;
+    }
+
+    private boolean isAutoBoxingMethod(Method method) {
+      Class<?>[] parameters = method.getParameterTypes();
+      return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
+          && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
+    }
+
+    private Class<?> wrapPrimitives(Class<?> clazz) {
+      return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS.get(clazz) : clazz;
+    }
+
+    private int getConstantPoolSize(Object constantPool) {
+      try {
+        return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
+      } catch (Exception ignore) {
+        return 0;
       }
     }
 
-    Member result = null;
-    Method prev = null;
-    for (int i = start - 1; i >= 0; i--) {
-      Member member = constantPoolMethods[i];
-      // Skip SerializedLambda constructors and members of the "type" class
-      if ((member instanceof Constructor
-          && member.getDeclaringClass().getName().equals("java.lang.invoke.SerializedLambda"))
-          || member.getDeclaringClass().equals(type))
-        continue;
-
-      result = member;
-
-      // Return if not valueOf method
-      if (isBoxingOrUnboxingMethod(member) && prev == null) {
-        prev = (Method) member; //retain the last member if it is boxing or unboxing
-        continue;
+    private Member getConstantPoolMethodAt(Object constantPool, int i) {
+      try {
+        return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
+      } catch (Exception ignore) {
+        return null;
       }
-
-      break;
-    }
-
-    if (prev != null) {
-      // depending on the result, if the constantpool ends with a boxing method,
-      // if result is a constructor, then special care is needed
-      // | constructor type    | prev type       | end result      |
-      // | any                 | boxing method   | boxing method   |
-      // | primitive wrapper   | unboxing method | constructor     |
-      // | ! primitive wrapper | unboxing method | unboxing method |
-      if (result instanceof Constructor) {
-        if (isBoxingMethod(prev)) {
-          return prev;
-        } else if (isUnboxingMethod(prev) && !PRIMITIVE_WRAPPERS.contains(((Constructor<?>) result).getDeclaringClass())) {
-          return prev;
-        }
-      }
-    }
-
-    return result;
-  }
-
-  private static Member[] extractConstantPoolMethods(Class<?> type) {
-    Object constantPool;
-    try {
-      constantPool = GET_CONSTANT_POOL.invoke(JAVA_LANG_ACCESS, type);
-    } catch (Exception ignore) {
-      return new Member[0];
-    }
-    ArrayList<Member> methods = new ArrayList<>();
-    int constantPoolSize = getConstantPoolSize(constantPool);
-    for (int i = 0; i < constantPoolSize; i++) {
-      Member method = getConstantPoolMethodAt(constantPool, i);
-      if (method != null)
-        methods.add(method);
-    }
-    return methods.toArray(new Member[methods.size()]);
-  }
-
-  static boolean isInstrumentedByJacoco(Class<?> type) {
-    // http://www.eclemma.org/jacoco/trunk/doc/faq.html
-    // JaCoCo [...] adds two members to the classes: A private static field $jacocoData and
-    // a private static method $jacocoInit(). Both members are marked as synthetic.
-    boolean result = false;
-    try {
-      type.getDeclaredMethod("$jacocoInit");
-      result = true;
-    } catch (NoSuchMethodException ignore) {
-    }
-    try {
-      type.getDeclaredField("$jacocoData");
-      result = true;
-    } catch (NoSuchFieldException ignore) {
-    }
-    return result;
-  }
-
-  private static boolean isBoxingOrUnboxingMethod(Member member) {
-    return member instanceof Method && (isBoxingMethod((Method) member) || isUnboxingMethod((Method) member));
-  }
-
-  private static boolean isBoxingMethod(Method method) {
-    Class<?>[] parameters = method.getParameterTypes();
-    return method.getName().equals("valueOf") && parameters.length == 1 && parameters[0].isPrimitive()
-        && wrapPrimitives(parameters[0]).equals(method.getDeclaringClass());
-  }
-
-  private static boolean isUnboxingMethod(Method method) {
-    String methodName = method.getName();
-    String returnType = method.getReturnType().getSimpleName();
-    Class<?>[] parameters = method.getParameterTypes();
-
-    return method.getReturnType().isPrimitive() && parameters.length == 0
-        //booleanValue, byteValue, charValue, doubleValue, floatValue, intValue, longValue, shortValue
-        && methodName.startsWith(returnType) && methodName.endsWith("Value")
-        && (wrapPrimitives(method.getReturnType()).equals(method.getDeclaringClass())
-        || method.getDeclaringClass().equals(Number.class));
-  }
-
-  private static Class<?> wrapPrimitives(Class<?> clazz) {
-    return clazz.isPrimitive() ? PRIMITIVE_WRAPPERS_MAP.get(clazz) : clazz;
-  }
-
-  private static int getConstantPoolSize(Object constantPool) {
-    try {
-      return (Integer) GET_CONSTANT_POOL_SIZE.invoke(constantPool);
-    } catch (Exception ignore) {
-      return 0;
-    }
-  }
-
-  private static Member getConstantPoolMethodAt(Object constantPool, int i) {
-    try {
-      return (Member) GET_CONSTANT_POOL_METHOD_AT.invoke(constantPool, i);
-    } catch (Exception ignore) {
-      return null;
     }
   }
 }
